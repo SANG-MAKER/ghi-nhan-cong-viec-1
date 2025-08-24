@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import plotly.express as px
 
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
-
 st.title("📋 Ghi nhận công việc")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
@@ -63,14 +62,16 @@ with st.form("task_form"):
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
 
+        # 👉 Hiển thị bảng công việc vừa ghi nhận
+        st.markdown("### 📄 Công việc vừa ghi nhận")
+        st.dataframe(pd.DataFrame([new_task]), use_container_width=True)
+
 # --- Dashboard & Báo cáo ---
 if tasks:
     df = pd.DataFrame(tasks)
     st.markdown("## 📊 Dashboard báo cáo công việc")
 
     col1, col2, col3 = st.columns(3)
-
-    # Phần trăm hoàn thành
     total = len(df)
     done = len(df[df["status"] == "Hoàn thành"])
     percent_done = round((done / total) * 100, 1) if total > 0 else 0
