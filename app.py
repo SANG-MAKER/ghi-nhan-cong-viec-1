@@ -131,6 +131,49 @@ if tasks:
 else:
     st.info("📭 Chưa có công việc nào được ghi nhận.")
 
+    # --- Biểu đồ thống kê ---
+    st.subheader("📊 Biểu đồ thống kê công việc")
+
+    col_chart1, col_chart2 = st.columns(2)
+    with col_chart1:
+        fig_status = px.pie(filtered_df, names="status", title="Tỷ lệ trạng thái công việc")
+        st.plotly_chart(fig_status, use_container_width=True)
+
+    with col_chart2:
+        fig_project = px.bar(filtered_df["project"].value_counts().reset_index(),
+                             x="index", y="project",
+                             title="Số lượng công việc theo dự án",
+                             labels={"index": "Dự án", "project": "Số lượng"})
+        st.plotly_chart(fig_project, use_container_width=True)
+
+    fig_category = px.bar(filtered_df["category"].value_counts().reset_index(),
+                          x="category", y="index",
+                          orientation="h",
+                          title="Số lượng công việc theo hạng mục",
+                          labels={"index": "Hạng mục", "category": "Số lượng"})
+    st.plotly_chart(fig_category, use_container_width=True)
+
+    fig_daily = px.histogram(filtered_df, x="date", title="Số lượng công việc theo ngày")
+    st.plotly_chart(fig_daily, use_container_width=True)
+    # --- Xuất báo cáo tổng hợp ---
+    st.subheader("📄 Xuất báo cáo tổng hợp")
+
+    report_buffer = io.StringIO()
+    report_buffer.write("📄 Báo cáo tổng hợp công việc\n")
+    report_buffer.write(f"Tổng số công việc: {len(filtered_df)}\n")
+    report_buffer.write(f"Số người tham gia: {filtered_df['name'].nunique()}\n")
+    report_buffer.write(f"Số dự án: {filtered_df['project'].nunique()}\n")
+    report_buffer.write(f"Số hạng mục: {filtered_df['category'].nunique()}\n")
+    report_buffer.write("\n📍 Thống kê trạng thái:\n")
+    for status, count in filtered_df["status"].value_counts().items():
+        report_buffer.write(f"- {status}: {count}\n")
+
+    st.download_button(
+        label="📄 Tải báo cáo tổng hợp (.txt)",
+        data=report_buffer.getvalue(),
+        file_name="bao_cao_tong_hop.txt",
+        mime="text/plain"
+    )
 
 
 
