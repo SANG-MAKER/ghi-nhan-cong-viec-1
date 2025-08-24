@@ -1,103 +1,45 @@
 import streamlit as st
 import json
-import pandas as pd
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-import streamlit_authenticator as stauth
+import os
 
-# --- Đăng nhập ---
-names = ["Sang"]
-usernames = ["sang"]
-passwords = ["123456"]  # Đổi thành mật khẩu mạnh hơn nếu triển khai thực tế
-hashed_pw = stauth.Hasher(passwords).generate()
+st.set_page_config(page_title="Ghi nhận công việc", layout="centered")
 
-authenticator = stauth.Authenticate(names, usernames, hashed_pw, "ghi_nhan_app", "abcdef", cookie_expiry_days=30)
-name, auth_status, username = authenticator.login("Đăng nhập", "main")
+st.title("📋 Ghi nhận công việc")
+st.write("Nhập thông tin công việc bạn đã hoàn thành:")
 
-if auth_status == False:
-    st.error("Sai thông tin đăng nhập")
-elif auth_status == None:
-    st.warning("Vui lòng nhập thông tin")
-elif auth_status:
-    authenticator.logout("Đăng xuất", "sidebar")
-    st.sidebar.success(f"Xin chào {name} 👋")
+# Form nhập dữ liệu
+with st.form("task_form"):
+    task_name = st.text_input("Tên công việc")
+    task_date = st.date_input("Ngày thực hiện")
+    task_note = st.text_area("Ghi chú")
+    submitted = st.form_submit_button("Lưu")
 
-    # --- Load và lưu dữ liệu ---
-    DATA_FILE = "tasks.json"
+# Lưu dữ liệu vào file JSON
+if submitted:
+    new_task = {
+        "name": task_name,
+        "date": str(task_date),
+        "note": task_note
+    }
 
-    def load_tasks():
-        try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
-
-    def save_tasks(tasks):
-        with open(DATA_FILE, "w") as f:
-            json.dump(tasks, f, indent=4)
-
-    st.title("📝 Ghi nhận công việc mỗi ngày")
-
-    # --- Ghi nhận công việc ---
-    with st.form("task_form"):
-        desc = st.text_input("📌 Mô tả công việc")
-        category = st.selectbox("📂 Phân loại", ["Công việc", "Cá nhân", "Học tập", "Khác"])
-        submitted = st.form_submit_button("✅ Ghi nhận")
-
-        if submitted and desc:
-            tasks = load_tasks()
-            date = datetime.now().strftime("%Y-%m-%d")
-            time = datetime.now().strftime("%H:%M:%S")
-            if date not in tasks:
-                tasks[date] = []
-            tasks[date].append({
-                "time": time,
-                "description": desc,
-                "category": category,
-                "user": username
-            })
-            save_tasks(tasks)
-            st.success(f"Đã ghi nhận: {desc} lúc {time}")
-
-    # --- Hiển thị công việc hôm nay ---
-    st.subheader("📅 Danh sách công việc hôm nay")
-    tasks = load_tasks()
-    today = datetime.now().strftime("%Y-%m-%d")
-    if today in tasks:
-        for i, task in enumerate(tasks[today], 1):
-            if task["user"] == username:
-                st.markdown(f"- **{i}.** ⏰ *{task['time']}* — {task['description']} _(Loại: {task['category']})_")
+    if os.path.exists("tasks.json"):
+        with open("tasks.json", "r", encoding="utf-8") as f:
+            tasks = json.load(f)
     else:
-        st.info("Chưa có công việc nào được ghi nhận hôm nay.")
+        tasks = []
 
-    # --- Báo cáo tuần ---
-    st.subheader("📈 Báo cáo tuần")
-    week_dates = [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]
-    report = []
+    tasks.append(new_task)
 
-    for date in week_dates:
-        if date in tasks:
-            for task in tasks[date]:
-                if task["user"] == username:
-                    report.append({
-                        "Ngày": date,
-                        "Giờ": task["time"],
-                        "Mô tả": task["description"],
-                        "Phân loại": task["category"]
-                    })
+    with open("tasks.json", "w", encoding="utf-8") as f:
+        json.dump(tasks, f, ensure_ascii=False, indent=2)
 
-    if report:
-        df = pd.DataFrame(report)
-        st.dataframe(df)
+    st.success("✅ Công việc đã được lưu!")
 
-        # --- Biểu đồ ---
-        st.subheader("📊 Biểu đồ số lượng công việc theo ngày")
-        count_by_day = df["Ngày"].value_counts().sort_index()
-        fig, ax = plt.subplots()
-        count_by_day.plot(kind="bar", ax=ax, color="skyblue")
-        ax.set_ylabel("Số công việc")
-        ax.set_xlabel("Ngày")
-        ax.set_title("Thống kê công việc trong tuần")
-        st.pyplot(fig)
-    else:
-        st.info("Không có dữ liệu tuần này.")
+# Hiển thị danh sách công việc
+if os.path.exists("tasks.json"):
+    st.subheader("📌 Danh sách công việc đã ghi nhận")
+    with open("tasks.json", "r", encoding="utf-8") as f:
+        tasks = json.load(f)
+        for i, task in enumerate(tasks[::-1], 1):
+            st.markdown(f"**{i}. {task['name']}** ({task['date']})  \n*{task['note']}*")
+
