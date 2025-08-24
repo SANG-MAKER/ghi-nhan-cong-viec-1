@@ -117,20 +117,6 @@ if tasks:
                     json.dump(df.drop(columns=["datetime"]).to_dict(orient="records"), f, ensure_ascii=False, indent=2)
                 st.success("✅ Đã lưu thay đổi!")
 
-    # Xuất Excel
-    st.subheader("📥 Tải danh sách công việc")
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.drop(columns=["datetime"]).to_excel(writer, index=False, sheet_name="Tasks")
-    st.download_button(
-        label="📂 Tải xuống Excel",
-        data=output.getvalue(),
-        file_name="danh_sach_cong_viec.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-else:
-    st.info("📭 Chưa có công việc nào được ghi nhận.")
-
     # --- Biểu đồ thống kê ---
     st.subheader("📊 Biểu đồ thống kê công việc")
 
@@ -155,6 +141,7 @@ else:
 
     fig_daily = px.histogram(filtered_df, x="date", title="Số lượng công việc theo ngày")
     st.plotly_chart(fig_daily, use_container_width=True)
+
     # --- Xuất báo cáo tổng hợp ---
     st.subheader("📄 Xuất báo cáo tổng hợp")
 
@@ -174,6 +161,20 @@ else:
         file_name="bao_cao_tong_hop.txt",
         mime="text/plain"
     )
+
+    # --- Xuất Excel ---
+    st.subheader("📥 Tải danh sách công việc")
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.drop(columns=["datetime"]).to_excel(writer, index=False, sheet_name="Tasks")
+    st.download_button(
+        label="📂 Tải xuống Excel",
+        data=output.getvalue(),
+        file_name="danh_sach_cong_viec.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+else:
+    st.info("📭 Chưa có công việc nào được ghi nhận.")
 
 
 
