@@ -30,7 +30,7 @@ with st.form("task_form"):
     department = st.text_input("Phòng ban")
 
     st.markdown("### 📁 Thông tin công việc")
-    project = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"])
+    project = st.selectbox("Dự án", options=["Dự án 43 DTM", "Dự án GALERY", "Dự án VVIP"])
     category = st.selectbox("Hạng mục", options=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"])
     task = st.text_area("Nội dung công việc")
     note = st.text_area("Ghi chú")
