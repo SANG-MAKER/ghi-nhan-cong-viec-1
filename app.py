@@ -3,7 +3,7 @@ import json
 import os
 import pandas as pd
 import io
-from datetime import datetime, timedelta
+from datetime import datetime
 import plotly.express as px
 
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
@@ -55,28 +55,35 @@ with st.form("task_form"):
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
 
-# --- Hiển thị & chỉnh sửa ---
+# --- Hiển thị & chỉnh sửa lịch sử ---
 if tasks:
     df = pd.DataFrame(tasks)
-    st.subheader("📄 Danh sách công việc đã ghi nhận")
+    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
+    df.sort_values("datetime", inplace=True)
 
-    for i, row in df.iterrows():
-        with st.expander(f"📌 {row['task']} ({row['date']}) - {row['name']}"):
-            col1, col2 = st.columns(2)
-            with col1:
-                new_status = st.selectbox("📍 Trạng thái", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(row["status"]), key=f"status_{i}")
-                new_progress = st.slider("📈 % Hoàn thành", 0, 100, value=int(row["progress"]), key=f"progress_{i}")
-            with col2:
-                new_task = st.text_area("📌 Nội dung công việc", value=row["task"], key=f"task_{i}")
-                new_note = st.text_area("🗒 Ghi chú", value=row["note"], key=f"note_{i}")
-            if st.button("💾 Lưu chỉnh sửa", key=f"save_{i}"):
-                df.at[i, "status"] = new_status
-                df.at[i, "progress"] = new_progress
-                df.at[i, "task"] = new_task
-                df.at[i, "note"] = new_note
-                with open(DATA_FILE, "w", encoding="utf-8") as f:
-                    json.dump(df.to_dict(orient="records"), f, ensure_ascii=False, indent=2)
-                st.success("✅ Đã lưu thay đổi!")
+    st.subheader("📄 Lịch sử ghi nhận công việc")
+
+    grouped = df.groupby(["project", "category"])
+    for (proj, cat), group in grouped:
+        with st.expander(f"📁 {proj} - 📂 {cat} ({len(group)} công việc)"):
+            for i, row in group.iterrows():
+                with st.container():
+                    col1, col2 = st.columns([5, 1])
+                    with col1:
+                        st.markdown(f"**📌 {row['task']}**  \n🗓 {row['date']} - 👤 {row['name']} ({row['department']})")
+                        new_task = st.text_area("📌 Nội dung", value=row["task"], key=f"task_{i}")
+                        new_note = st.text_area("🗒 Ghi chú", value=row["note"], key=f"note_{i}")
+                    with col2:
+                        new_status = st.selectbox("📍 Trạng thái", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(row["status"]), key=f"status_{i}")
+                        new_progress = st.slider("📈 % Hoàn thành", 0, 100, value=int(row["progress"]), key=f"progress_{i}")
+                        if st.button("💾 Lưu", key=f"save_{i}"):
+                            df.at[i, "task"] = new_task
+                            df.at[i, "note"] = new_note
+                            df.at[i, "status"] = new_status
+                            df.at[i, "progress"] = new_progress
+                            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                                json.dump(df.drop(columns=["datetime"]).to_dict(orient="records"), f, ensure_ascii=False, indent=2)
+                            st.success("✅ Đã lưu thay đổi!")
 
     # --- Dashboard ---
     st.subheader("📊 Thống kê tổng quan")
@@ -98,7 +105,7 @@ if tasks:
     st.subheader("📥 Tải danh sách công việc")
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Tasks")
+        df.drop(columns=["datetime"]).to_excel(writer, index=False, sheet_name="Tasks")
     st.download_button(
         label="📂 Tải xuống Excel",
         data=output.getvalue(),
@@ -107,7 +114,6 @@ if tasks:
     )
 else:
     st.info("📭 Chưa có công việc nào được ghi nhận.")
-
 
 
 
