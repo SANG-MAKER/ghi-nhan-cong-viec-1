@@ -28,13 +28,17 @@ with st.form("task_form"):
     name = st.text_input("👤 Tên người thực hiện")
     task = st.text_area("📌 Nội dung công việc")
     date = st.date_input("📅 Ngày thực hiện", value=datetime.today())
+    time = st.time_input("⏰ Thời gian thực hiện", value=datetime.now().time())
+    repeat = st.number_input("🔁 Lần thực hiện", min_value=1, step=1, value=1)
     submitted = st.form_submit_button("✅ Ghi nhận")
 
     if submitted:
         new_task = {
             "name": name,
             "task": task,
-            "date": str(date)
+            "date": str(date),
+            "time": time.strftime("%H:%M"),
+            "repeat": repeat
         }
         tasks.append(new_task)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
@@ -55,7 +59,7 @@ if tasks:
     # Tải xuống file Excel
     st.subheader("📥 Tải danh sách công việc")
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Tasks")
     st.download_button(
         label="📂 Tải xuống Excel",
