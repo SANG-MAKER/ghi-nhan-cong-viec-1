@@ -3,18 +3,18 @@ import json
 import os
 import pandas as pd
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
+import plotly.express as px
 
-st.set_page_config(page_title="Ghi nhận công việc", page_icon="📝")
+st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
 
-st.title("📝 Ghi nhận công việc")
-st.markdown("Hệ thống ghi nhận công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
+st.title("📋 Ghi nhận công việc")
+st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
-# File dữ liệu
 DATA_FILE = "tasks.json"
 tasks = []
 
-# Đọc dữ liệu từ file JSON
+# Đọc dữ liệu
 if os.path.exists(DATA_FILE):
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -27,13 +27,13 @@ if os.path.exists(DATA_FILE):
 with st.form("task_form"):
     st.markdown("### 👤 Thông tin người thực hiện")
     name = st.text_input("Tên người thực hiện")
-    department = st.text_input("Phòng ban (nếu có)")
+    department = st.text_input("Phòng ban")
 
     st.markdown("### 📁 Thông tin công việc")
-    project = st.selectbox("Dự án", options=["43 DTM", "GALLERY", "VVIP"])
-    category = st.selectbox("Hạng mục", options=["Thiết kế", "Mua sắm ", "Gia công", "Vận chuyển", "Lắp dựng"])
+    project = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"])
+    category = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"])
     task = st.text_area("Nội dung công việc")
-    note = st.text_area("Ghi chú bổ sung")
+    note = st.text_area("Ghi chú")
 
     st.markdown("### ⏰ Thời gian thực hiện")
     date = st.date_input("Ngày thực hiện", value=datetime.today())
@@ -41,18 +41,11 @@ with st.form("task_form"):
     repeat = st.number_input("Số lần thực hiện", min_value=1, step=1, value=1)
 
     st.markdown("### ☑️ Trạng thái công việc")
-    status_done = st.checkbox("Hoàn thành")
-    status_pending = st.checkbox("Đang thực hiện")
-    status_review = st.checkbox("Chờ duyệt")
+    status = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"])
 
     submitted = st.form_submit_button("✅ Ghi nhận")
 
     if submitted:
-        status_list = []
-        if status_done: status_list.append("Hoàn thành")
-        if status_pending: status_list.append("Đang thực hiện")
-        if status_review: status_list.append("Chờ duyệt")
-
         new_task = {
             "name": name.strip(),
             "department": department.strip(),
@@ -63,43 +56,59 @@ with st.form("task_form"):
             "date": str(date),
             "time": time.strftime("%H:%M"),
             "repeat": repeat,
-            "status": ", ".join(status_list)
+            "status": status
         }
         tasks.append(new_task)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
-        st.success("🎉 Đã ghi nhận công việc!")
+        st.success("🎉 Công việc đã được ghi nhận!")
 
-# --- Hiển thị dữ liệu ---
+# --- Dashboard & Báo cáo ---
 if tasks:
-    st.subheader("📊 Danh sách công việc đã ghi nhận")
     df = pd.DataFrame(tasks)
-    st.dataframe(df)
+    st.markdown("## 📊 Dashboard báo cáo công việc")
 
-    # Bộ lọc theo hạng mục
-    st.subheader("📂 Xuất báo cáo theo hạng mục")
-    unique_categories = df["category"].dropna().unique()
-    selected_category = st.selectbox("🧩 Chọn hạng mục để xuất báo cáo", options=unique_categories)
+    col1, col2, col3 = st.columns(3)
 
-    filtered_df = df[df["category"] == selected_category]
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        filtered_df.to_excel(writer, index=False, sheet_name="Hạng mục")
-    st.download_button(
-        label=f"📥 Tải báo cáo hạng mục '{selected_category}'",
-        data=output.getvalue(),
-        file_name=f"bao_cao_{selected_category}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    # Phần trăm hoàn thành
+    total = len(df)
+    done = len(df[df["status"] == "Hoàn thành"])
+    percent_done = round((done / total) * 100, 1) if total > 0 else 0
+    col1.metric("✅ % Hoàn thành", f"{percent_done}%")
+    col2.metric("📌 Tổng công việc", total)
+    col3.metric("⏳ Đang thực hiện", len(df[df["status"] == "Đang thực hiện"]))
+
+    # Biểu đồ trạng thái
+    status_count = df["status"].value_counts()
+    fig_status = px.pie(names=status_count.index, values=status_count.values, title="Tỷ lệ trạng thái công việc")
+    st.plotly_chart(fig_status, use_container_width=True)
+
+    # Biểu đồ theo ngày
+    fig_date = px.bar(df["date"].value_counts().sort_index(), title="Số lượng công việc theo ngày")
+    st.plotly_chart(fig_date, use_container_width=True)
+
+    # Biểu đồ theo hạng mục
+    fig_cat = px.bar(df["category"].value_counts(), orientation="h", title="Số lượng công việc theo hạng mục")
+    st.plotly_chart(fig_cat, use_container_width=True)
+
+    # Nhắc nhở công việc chờ duyệt quá 3 ngày
+    st.markdown("### 🔔 Nhắc nhở công việc chờ duyệt")
+    df["date_obj"] = pd.to_datetime(df["date"])
+    overdue = df[(df["status"] == "Chờ duyệt") & (df["date_obj"] < datetime.today() - timedelta(days=3))]
+    if not overdue.empty:
+        st.warning(f"⚠️ Có {len(overdue)} công việc chờ duyệt quá 3 ngày!")
+        st.dataframe(overdue.drop(columns=["date_obj"]))
+    else:
+        st.success("✅ Không có công việc chờ duyệt quá hạn.")
 
     # Tải toàn bộ danh sách
-    st.subheader("📥 Tải toàn bộ danh sách công việc")
-    full_output = io.BytesIO()
-    with pd.ExcelWriter(full_output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Tất cả công việc")
+    st.markdown("### 📥 Tải danh sách công việc")
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.drop(columns=["date_obj"]).to_excel(writer, index=False, sheet_name="Tasks")
     st.download_button(
-        label="📂 Tải toàn bộ Excel",
-        data=full_output.getvalue(),
+        label="📂 Tải xuống Excel",
+        data=output.getvalue(),
         file_name="danh_sach_cong_viec.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
