@@ -4,171 +4,94 @@ import os
 import pandas as pd
 import io
 from datetime import datetime
-import plotly.express as px
 
-st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
-st.title("📋 Ghi nhận công việc")
+st.set_page_config(page_title="Ghi nhận công việc", page_icon="📝")
+
+st.title("📝 Ghi nhận công việc")
+st.markdown("Nhập thông tin công việc bạn đã hoàn thành để lưu lại và thống kê.")
+
+# File dữ liệu
 DATA_FILE = "tasks.json"
+tasks = []
 
-# Load dữ liệu
+# Đọc dữ liệu từ file JSON
 if os.path.exists(DATA_FILE):
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             tasks = json.load(f)
-    except:
+    except json.JSONDecodeError:
+        st.warning("⚠️ File dữ liệu bị lỗi. Đang khởi tạo lại danh sách trống.")
         tasks = []
-else:
-    tasks = []
 
-# --- Biểu mẫu ghi nhận ---
+# Form nhập công việc
 with st.form("task_form"):
-    st.subheader("📝 Ghi nhận công việc mới")
     name = st.text_input("👤 Tên người thực hiện")
-    department = st.text_input("🏢 Phòng ban")
-    project = st.selectbox("📁 Dự án", ["Dự án 43 DTM", "Dự án GALERY", "Dự án VVIP"])
-    category = st.selectbox("📂 Hạng mục", ["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"])
+    project = st.text_input("📁 Dự án")
+    category = st.text_input("🧩 Hạng mục")
     task = st.text_area("📌 Nội dung công việc")
-    note = st.text_area("🗒 Ghi chú")
+    note = st.text_area("📝 Ghi chú")
     date = st.date_input("📅 Ngày thực hiện", value=datetime.today())
-    time = st.time_input("⏰ Thời gian bắt đầu", value=datetime.now().time())
-    repeat = st.number_input("🔁 Số lần thực hiện", min_value=1, step=1, value=1)
-    status = st.radio("📍 Trạng thái", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt"])
-    progress = st.slider("📈 % Hoàn thành", 0, 100, value=100 if status == "Hoàn thành" else 0)
+    time = st.time_input("⏰ Thời gian thực hiện", value=datetime.now().time())
+    repeat = st.number_input("🔁 Lần thực hiện", min_value=1, step=1, value=1)
     submitted = st.form_submit_button("✅ Ghi nhận")
 
     if submitted:
         new_task = {
             "name": name.strip(),
-            "department": department.strip(),
-            "project": project,
-            "category": category,
+            "project": project.strip(),
+            "category": category.strip(),
             "task": task.strip(),
             "note": note.strip(),
             "date": str(date),
             "time": time.strftime("%H:%M"),
-            "repeat": repeat,
-            "status": status,
-            "progress": progress
+            "repeat": repeat
         }
         tasks.append(new_task)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
-        st.success("🎉 Công việc đã được ghi nhận!")
+        st.success("🎉 Đã ghi nhận công việc!")
 
-# --- Hiển thị bảng lịch sử ---
+# Hiển thị thống kê nếu có dữ liệu
 if tasks:
+    st.subheader("📊 Danh sách công việc đã ghi nhận")
     df = pd.DataFrame(tasks)
-    df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"])
-    df.sort_values("datetime", inplace=True)
+    st.dataframe(df)
 
-    st.subheader("📋 Bảng lịch sử công việc")
+    # Thống kê theo ngày
+    st.subheader("📅 Số lượng công việc theo ngày")
+    count_by_date = df["date"].value_counts().sort_index()
+    st.bar_chart(count_by_date)
 
-    # Bộ lọc
-    with st.expander("🔍 Bộ lọc"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            selected_person = st.multiselect("👤 Người thực hiện", options=df["name"].unique())
-        with col2:
-            selected_project = st.multiselect("📁 Dự án", options=df["project"].unique())
-        with col3:
-            selected_status = st.multiselect("📍 Trạng thái", options=df["status"].unique())
+    # Bộ lọc theo hạng mục
+    st.subheader("📂 Xuất báo cáo theo hạng mục")
+    unique_categories = df["category"].dropna().unique()
+    selected_category = st.selectbox("🧩 Chọn hạng mục", options=unique_categories)
 
-        filtered_df = df.copy()
-        if selected_person:
-            filtered_df = filtered_df[filtered_df["name"].isin(selected_person)]
-        if selected_project:
-            filtered_df = filtered_df[filtered_df["project"].isin(selected_project)]
-        if selected_status:
-            filtered_df = filtered_df[filtered_df["status"].isin(selected_status)]
+    filtered_df = df[df["category"] == selected_category]
 
-    # Màu sắc trạng thái
-    def color_status(row):
-        if row["status"] == "Hoàn thành":
-            return "background-color: #d4edda"
-        elif row["status"] == "Đang thực hiện":
-            return "background-color: #fff3cd"
-        else:
-            return "background-color: #f8d7da"
-
-    styled_df = filtered_df.style.applymap(
-        lambda val: "color: black", subset=["status"]
-    ).applymap(
-        lambda val: "font-weight: bold", subset=["status"]
-    ).apply(
-        lambda row: [color_status(row)] * len(row), axis=1
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        filtered_df.to_excel(writer, index=False, sheet_name="Hạng mục")
+    st.download_button(
+        label=f"📥 Tải báo cáo hạng mục '{selected_category}'",
+        data=output.getvalue(),
+        file_name=f"bao_cao_{selected_category}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    st.dataframe(styled_df, use_container_width=True)
-
-    # Chỉnh sửa từng dòng
-    st.subheader("✏️ Chỉnh sửa công việc")
-    for i, row in filtered_df.iterrows():
-        with st.expander(f"{row['date']} - {row['name']} - {row['task']}"):
-            new_task = st.text_area("📌 Nội dung", value=row["task"], key=f"task_{i}")
-            new_note = st.text_area("🗒 Ghi chú", value=row["note"], key=f"note_{i}")
-            new_status = st.selectbox("📍 Trạng thái", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(row["status"]), key=f"status_{i}")
-            new_progress = st.slider("📈 % Hoàn thành", 0, 100, value=int(row["progress"]), key=f"progress_{i}")
-            if st.button("💾 Lưu", key=f"save_{i}"):
-                df.at[i, "task"] = new_task
-                df.at[i, "note"] = new_note
-                df.at[i, "status"] = new_status
-                df.at[i, "progress"] = new_progress
-                with open(DATA_FILE, "w", encoding="utf-8") as f:
-                    json.dump(df.drop(columns=["datetime"]).to_dict(orient="records"), f, ensure_ascii=False, indent=2)
-                st.success("✅ Đã lưu thay đổi!")
-
-    # --- Biểu đồ thống kê ---
-    st.subheader("📊 Biểu đồ thống kê công việc")
-
-    col_chart1, col_chart2 = st.columns(2)
-    with col_chart1:
-        fig_status = px.pie(filtered_df, names="status", title="Tỷ lệ trạng thái công việc")
-        st.plotly_chart(fig_status, use_container_width=True)
-
-    with col_chart2:
-        fig_project = px.bar(filtered_df["project"].value_counts().reset_index(),
-                             x="index", y="project",
-                             text="project",
-                             title="Số lượng công việc theo dự án",
-                             labels={"index": "Dự án", "project": "Số lượng"})
-        st.plotly_chart(fig_project, use_container_width=True)
-
-    fig_category = px.bar(filtered_df["category"].value_counts().reset_index(),
-                          x="category", y="index",
-                          orientation="h",
-                          title="Số lượng công việc theo hạng mục",
-                          labels={"index": "Hạng mục", "category": "Số lượng"})
-    st.plotly_chart(fig_category, use_container_width=True)
-
-    fig_daily = px.histogram(filtered_df, x="date", title="Số lượng công việc theo ngày")
-    st.plotly_chart(fig_daily, use_container_width=True)
-
-    fig_department = px.bar(filtered_df["department"].value_counts().reset_index(),
-                            x="index", y="department",
-                            text="department",
-                            title="Số lượng công việc theo phòng ban",
-                            labels={"index": "Phòng ban", "department": "Số lượng"})
-    st.plotly_chart(fig_department, use_container_width=True)
-
-    # --- Xuất báo cáo tổng hợp ---
-    st.subheader("📄 Xuất báo cáo tổng hợp")
-
-    report_buffer = io.StringIO()
-    report_buffer.write("📄 Báo cáo tổng hợp công việc\n")
-    report_buffer.write(f"Tổng số công việc: {len(filtered_df)}\n")
-    report_buffer.write(f"Số người tham gia: {filtered_df['name'].nunique()}\n")
-    report_buffer.write(f"Số dự án: {filtered_df['project'].nunique()}\n")
-    report_buffer.write(f"Số hạng mục: {filtered_df['category'].nunique()}\n")
-    report_buffer.write(f"Số phòng ban: {filtered_df['department'].nunique()}\n")
-    report_buffer.write("\n📍 Thống kê trạng thái:\n")
-    for status, count in filtered_df["status"].value_counts().items():
-        report_buffer.write(f"- {status}: {count}\n")
-
+    # Tải toàn bộ danh sách
+    st.subheader("📥 Tải toàn bộ danh sách công việc")
+    full_output = io.BytesIO()
+    with pd.ExcelWriter(full_output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Tất cả công việc")
     st.download_button(
-        label="📄 Tải báo cáo tổng hợp (.txt)",
-        data=report_buffer.getvalue(),
-        file_name="bao_cao_tong_hop.txt",
-
+        label="📂 Tải toàn bộ Excel",
+        data=full_output.getvalue(),
+        file_name="danh_sach_cong_viec.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+else:
+    st.info("Chưa có công việc nào được ghi nhận.")
 
 
 
