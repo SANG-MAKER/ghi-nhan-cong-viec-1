@@ -10,13 +10,18 @@ st.set_page_config(page_title="Ghi nhận công việc", page_icon="📝")
 st.title("📝 Ghi nhận công việc")
 st.markdown("Nhập thông tin công việc bạn đã hoàn thành để lưu lại và thống kê.")
 
-# Load existing tasks
+# File lưu dữ liệu
 DATA_FILE = "tasks.json"
+tasks = []
+
+# Đọc dữ liệu từ file JSON, xử lý lỗi nếu có
 if os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        tasks = json.load(f)
-else:
-    tasks = []
+    try:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            tasks = json.load(f)
+    except json.JSONDecodeError:
+        st.warning("⚠️ File dữ liệu bị lỗi. Đang khởi tạo lại danh sách trống.")
+        tasks = []
 
 # Form nhập công việc
 with st.form("task_form"):
@@ -34,11 +39,11 @@ with st.form("task_form"):
         tasks.append(new_task)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
-        st.success("Đã ghi nhận công việc!")
+        st.success("🎉 Đã ghi nhận công việc!")
 
-# Hiển thị bảng thống kê
+# Hiển thị thống kê nếu có dữ liệu
 if tasks:
-    st.subheader("📊 Thống kê công việc")
+    st.subheader("📊 Danh sách công việc đã ghi nhận")
     df = pd.DataFrame(tasks)
     st.dataframe(df)
 
@@ -48,15 +53,17 @@ if tasks:
     st.bar_chart(count_by_date)
 
     # Tải xuống file Excel
-    st.subheader("📥 Xuất danh sách công việc")
+    st.subheader("📥 Tải danh sách công việc")
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Tasks")
     st.download_button(
-        label="Tải xuống Excel",
+        label="📂 Tải xuống Excel",
         data=output.getvalue(),
         file_name="danh_sach_cong_viec.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+else:
+    st.info("Chưa có công việc nào được ghi nhận.")
 
 
