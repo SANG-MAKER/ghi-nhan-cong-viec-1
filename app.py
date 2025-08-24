@@ -41,6 +41,7 @@ with st.form("task_form"):
 
     st.markdown("### ☑️ Trạng thái công việc")
     status = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"])
+    progress = st.slider("📈 % Hoàn thành", 0, 100, value=100 if status == "Hoàn thành" else 0)
 
     submitted = st.form_submit_button("✅ Ghi nhận")
 
@@ -55,14 +56,13 @@ with st.form("task_form"):
             "date": str(date),
             "time": time.strftime("%H:%M"),
             "repeat": repeat,
-            "status": status
+            "status": status,
+            "progress": progress
         }
         tasks.append(new_task)
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
-
-        # 👉 Hiển thị bảng công việc vừa ghi nhận
         st.markdown("### 📄 Công việc vừa ghi nhận")
         st.dataframe(pd.DataFrame([new_task]), use_container_width=True)
 
@@ -102,6 +102,20 @@ if tasks:
     else:
         st.success("✅ Không có công việc chờ duyệt quá hạn.")
 
+    # Cập nhật trạng thái bằng checkbox
+    st.markdown("### ☑️ Cập nhật trạng thái công việc")
+    for i, row in df.iterrows():
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.write(f"📌 {row['task']} ({row['date']}) - {row['name']}")
+        with col2:
+            if st.checkbox("✅ Hoàn thành", key=f"done_{i}"):
+                df.at[i, "status"] = "Hoàn thành"
+                df.at[i, "progress"] = 100
+                with open(DATA_FILE, "w", encoding="utf-8") as f:
+                    json.dump(df.drop(columns=["date_obj"]).to_dict(orient="records"), f, ensure_ascii=False, indent=2)
+                st.success(f"🎯 Đã cập nhật: {row['task']}")
+
     # Tải toàn bộ danh sách
     st.markdown("### 📥 Tải danh sách công việc")
     output = io.BytesIO()
@@ -114,7 +128,8 @@ if tasks:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 else:
-    st.info("Chưa có công việc nào được ghi nhận.")
+    st.info("📭 Chưa có công việc nào được ghi nhận.")
+
 
 
 
