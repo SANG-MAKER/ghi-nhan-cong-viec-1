@@ -128,6 +128,7 @@ if tasks:
     with col_chart2:
         fig_project = px.bar(filtered_df["project"].value_counts().reset_index(),
                              x="index", y="project",
+                             text="project",
                              title="Số lượng công việc theo dự án",
                              labels={"index": "Dự án", "project": "Số lượng"})
         st.plotly_chart(fig_project, use_container_width=True)
@@ -142,6 +143,13 @@ if tasks:
     fig_daily = px.histogram(filtered_df, x="date", title="Số lượng công việc theo ngày")
     st.plotly_chart(fig_daily, use_container_width=True)
 
+    fig_department = px.bar(filtered_df["department"].value_counts().reset_index(),
+                            x="index", y="department",
+                            text="department",
+                            title="Số lượng công việc theo phòng ban",
+                            labels={"index": "Phòng ban", "department": "Số lượng"})
+    st.plotly_chart(fig_department, use_container_width=True)
+
     # --- Xuất báo cáo tổng hợp ---
     st.subheader("📄 Xuất báo cáo tổng hợp")
 
@@ -151,6 +159,7 @@ if tasks:
     report_buffer.write(f"Số người tham gia: {filtered_df['name'].nunique()}\n")
     report_buffer.write(f"Số dự án: {filtered_df['project'].nunique()}\n")
     report_buffer.write(f"Số hạng mục: {filtered_df['category'].nunique()}\n")
+    report_buffer.write(f"Số phòng ban: {filtered_df['department'].nunique()}\n")
     report_buffer.write("\n📍 Thống kê trạng thái:\n")
     for status, count in filtered_df["status"].value_counts().items():
         report_buffer.write(f"- {status}: {count}\n")
@@ -159,22 +168,7 @@ if tasks:
         label="📄 Tải báo cáo tổng hợp (.txt)",
         data=report_buffer.getvalue(),
         file_name="bao_cao_tong_hop.txt",
-        mime="text/plain"
-    )
 
-    # --- Xuất Excel ---
-    st.subheader("📥 Tải danh sách công việc")
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.drop(columns=["datetime"]).to_excel(writer, index=False, sheet_name="Tasks")
-    st.download_button(
-        label="📂 Tải xuống Excel",
-        data=output.getvalue(),
-        file_name="danh_sach_cong_viec.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-else:
-    st.info("📭 Chưa có công việc nào được ghi nhận.")
 
 
 
