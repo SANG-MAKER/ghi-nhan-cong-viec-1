@@ -105,44 +105,45 @@ if tasks:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # --- Hiển thị bảng & Cập nhật ---
+    # --- Hiển thị bảng công việc ---
     st.markdown("## 📋 Danh sách công việc đã ghi nhận")
     st.dataframe(df.drop(columns=["date_obj"]), use_container_width=True)
 
-    st.markdown("### ✏️ Chỉnh sửa công việc")
-    edit_index = st.selectbox("Chọn công việc", options=range(len(tasks)), format_func=lambda i: f"{tasks[i]['date']} - {tasks[i]['name']} - {tasks[i]['task'][:30]}")
-    selected_task = tasks[edit_index]
+    # --- Expander chỉnh sửa công việc ---
+    with st.expander("✏️ Chỉnh sửa công việc"):
+        edit_index = st.selectbox("Chọn công việc để chỉnh sửa", options=range(len(tasks)), format_func=lambda i: f"{tasks[i]['date']} - {tasks[i]['name']} - {tasks[i]['task'][:30]}")
+        selected_task = tasks[edit_index]
 
-    with st.form("edit_task_form"):
-        name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
-        department_edit = st.text_input("Phòng ban", value=selected_task["department"])
-        project_edit = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"], index=["Dự án A", "Dự án B", "Dự án C"].index(selected_task["project"]))
-        category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
-        task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
-        note_edit = st.text_area("Ghi chú", value=selected_task["note"])
-        date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
-        time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
-        repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
-        status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(selected_task["status"]))
+        with st.form("edit_task_form"):
+            name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
+            department_edit = st.text_input("Phòng ban", value=selected_task["department"])
+            project_edit = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"], index=["Dự án A", "Dự án B", "Dự án C"].index(selected_task["project"]))
+            category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
+            task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
+            note_edit = st.text_area("Ghi chú", value=selected_task["note"])
+            date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
+            time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
+            repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
+            status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(selected_task["status"]))
 
-        update_btn = st.form_submit_button("💾 Cập nhật công việc")
+            update_btn = st.form_submit_button("💾 Cập nhật công việc")
 
-        if update_btn:
-            tasks[edit_index] = {
-                "name": name_edit.strip(),
-                "department": department_edit.strip(),
-                "project": project_edit,
-                "category": category_edit,
-                "task": task_edit.strip(),
-                "note": note_edit.strip(),
-                "date": str(date_edit),
-                "time": time_edit.strftime("%H:%M"),
-                "repeat": repeat_edit,
-                "status": status_edit
-            }
-            with open(DATA_FILE, "w", encoding="utf-8") as f:
-                json.dump(tasks, f, ensure_ascii=False, indent=2)
-            st.success("✅ Công việc đã được cập nhật!")
+            if update_btn:
+                tasks[edit_index] = {
+                    "name": name_edit.strip(),
+                    "department": department_edit.strip(),
+                    "project": project_edit,
+                    "category": category_edit,
+                    "task": task_edit.strip(),
+                    "note": note_edit.strip(),
+                    "date": str(date_edit),
+                    "time": time_edit.strftime("%H:%M"),
+                    "repeat": repeat_edit,
+                    "status": status_edit
+                }
+                with open(DATA_FILE, "w", encoding="utf-8") as f:
+                    json.dump(tasks, f, ensure_ascii=False, indent=2)
+                st.success("✅ Công việc đã được cập nhật!")
 
 else:
     st.info("Chưa có công việc nào được ghi nhận.")
