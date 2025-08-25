@@ -117,7 +117,7 @@ if tasks:
         with st.form("edit_task_form"):
             name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
             department_edit = st.text_input("Phòng ban", value=selected_task["department"])
-            project_edit = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"], index=["Dự án A", "Dự án B", "Dự án C"].index(selected_task["project"]))
+            project_edit = st.selectbox("Dự án", options=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"], index=["Dự án A", "Dự án B", "Dự án C"].index(selected_task["project"]))
             category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
             task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
             note_edit = st.text_area("Ghi chú", value=selected_task["note"])
