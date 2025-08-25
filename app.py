@@ -151,4 +151,6 @@ if tasks:
             date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
             time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
             repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
-            status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ","Bỏ"]
+
+            status_options = ["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"]
+            status_index = status_options.index(selected_task["status"]) if selected_task["status"] in
