@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import plotly.express as px
 
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
-
 st.title("📋 Ghi nhận công việc")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
@@ -69,8 +68,6 @@ if tasks:
     st.markdown("## 📊 Dashboard báo cáo công việc")
 
     col1, col2, col3 = st.columns(3)
-
-    # Phần trăm hoàn thành
     total = len(df)
     done = len(df[df["status"] == "Hoàn thành"])
     percent_done = round((done / total) * 100, 1) if total > 0 else 0
@@ -78,20 +75,16 @@ if tasks:
     col2.metric("📌 Tổng công việc", total)
     col3.metric("⏳ Đang thực hiện", len(df[df["status"] == "Đang thực hiện"]))
 
-    # Biểu đồ trạng thái
     status_count = df["status"].value_counts()
     fig_status = px.pie(names=status_count.index, values=status_count.values, title="Tỷ lệ trạng thái công việc")
     st.plotly_chart(fig_status, use_container_width=True)
 
-    # Biểu đồ theo ngày
     fig_date = px.bar(df["date"].value_counts().sort_index(), title="Số lượng công việc theo ngày")
     st.plotly_chart(fig_date, use_container_width=True)
 
-    # Biểu đồ theo hạng mục
     fig_cat = px.bar(df["category"].value_counts(), orientation="h", title="Số lượng công việc theo hạng mục")
     st.plotly_chart(fig_cat, use_container_width=True)
 
-    # Nhắc nhở công việc chờ duyệt quá 3 ngày
     st.markdown("### 🔔 Nhắc nhở công việc chờ duyệt")
     df["date_obj"] = pd.to_datetime(df["date"])
     overdue = df[(df["status"] == "Chờ duyệt") & (df["date_obj"] < datetime.today() - timedelta(days=3))]
@@ -101,7 +94,6 @@ if tasks:
     else:
         st.success("✅ Không có công việc chờ duyệt quá hạn.")
 
-    # Tải toàn bộ danh sách
     st.markdown("### 📥 Tải danh sách công việc")
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
@@ -112,8 +104,49 @@ if tasks:
         file_name="danh_sach_cong_viec.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+    # --- Hiển thị bảng & Cập nhật ---
+    st.markdown("## 📋 Danh sách công việc đã ghi nhận")
+    st.dataframe(df.drop(columns=["date_obj"]), use_container_width=True)
+
+    st.markdown("### ✏️ Chỉnh sửa công việc")
+    edit_index = st.selectbox("Chọn công việc", options=range(len(tasks)), format_func=lambda i: f"{tasks[i]['date']} - {tasks[i]['name']} - {tasks[i]['task'][:30]}")
+    selected_task = tasks[edit_index]
+
+    with st.form("edit_task_form"):
+        name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
+        department_edit = st.text_input("Phòng ban", value=selected_task["department"])
+        project_edit = st.selectbox("Dự án", options=["Dự án A", "Dự án B", "Dự án C"], index=["Dự án A", "Dự án B", "Dự án C"].index(selected_task["project"]))
+        category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
+        task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
+        note_edit = st.text_area("Ghi chú", value=selected_task["note"])
+        date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
+        time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
+        repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
+        status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(selected_task["status"]))
+
+        update_btn = st.form_submit_button("💾 Cập nhật công việc")
+
+        if update_btn:
+            tasks[edit_index] = {
+                "name": name_edit.strip(),
+                "department": department_edit.strip(),
+                "project": project_edit,
+                "category": category_edit,
+                "task": task_edit.strip(),
+                "note": note_edit.strip(),
+                "date": str(date_edit),
+                "time": time_edit.strftime("%H:%M"),
+                "repeat": repeat_edit,
+                "status": status_edit
+            }
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(tasks, f, ensure_ascii=False, indent=2)
+            st.success("✅ Công việc đã được cập nhật!")
+
 else:
     st.info("Chưa có công việc nào được ghi nhận.")
+
 
 
 
