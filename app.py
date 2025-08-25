@@ -144,8 +144,10 @@ if tasks:
         with st.form("edit_task_inline"):
             name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
             department_edit = st.text_input("Phòng ban", value=selected_task["department"])
-            project_edit = st.selectbox("Dự án", options=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"], index=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"].index(selected_task["project"]))
-            category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"], index=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"].index(selected_task["category"]))
+            project_edit = st.selectbox("Dự án", options=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"],
+                                        index=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"].index(selected_task["project"]))
+            category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"],
+                                         index=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"].index(selected_task["category"]))
             task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
             note_edit = st.text_area("Ghi chú", value=selected_task["note"])
             date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
@@ -156,7 +158,4 @@ if tasks:
             status_index = status_options.index(selected_task["status"]) if selected_task["status"] in status_options else 0
             status_edit = st.radio("Trạng thái", options=status_options, index=status_index)
 
-            update_btn = st.form_submit_button("💾 Cập nhật")
-
-            if update_btn
-
+            update_btn = st.form_submit_button("
