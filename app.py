@@ -152,7 +152,7 @@ if tasks:
             time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
             repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
 
-     status_options = ["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"]
+status_options = ["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"]
 status_index = status_options.index(selected_task["status"]) if selected_task["status"] in status_options else 0
 status_edit = st.radio("Trạng thái", options=status_options, index=status_index)
 
