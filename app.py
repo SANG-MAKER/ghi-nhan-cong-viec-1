@@ -40,7 +40,7 @@ with st.form("task_form"):
     repeat = st.number_input("Số lần thực hiện", min_value=1, step=1, value=1)
 
     st.markdown("### ☑️ Trạng thái công việc")
-    status = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"])
+    status = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ"])
 
     submitted = st.form_submit_button("✅ Ghi nhận")
 
@@ -118,13 +118,13 @@ if tasks:
             name_edit = st.text_input("Tên người thực hiện", value=selected_task["name"])
             department_edit = st.text_input("Phòng ban", value=selected_task["department"])
             project_edit = st.selectbox("Dự án", options=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"], index=["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"].index(selected_task["project"]))
-            category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
+            category_edit = st.selectbox("Hạng mục", options=["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"], index=["Thiết kế", "Lập trình", "Kiểm thử", "Triển khai"].index(selected_task["category"]))
             task_edit = st.text_area("Nội dung công việc", value=selected_task["task"])
             note_edit = st.text_area("Ghi chú", value=selected_task["note"])
             date_edit = st.date_input("Ngày thực hiện", value=datetime.strptime(selected_task["date"], "%Y-%m-%d"))
             time_edit = st.time_input("Thời gian bắt đầu", value=datetime.strptime(selected_task["time"], "%H:%M").time())
             repeat_edit = st.number_input("Số lần thực hiện", min_value=1, step=1, value=selected_task["repeat"])
-            status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(selected_task["status"]))
+            status_edit = st.radio("Trạng thái", options=["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ"], index=["Hoàn thành", "Đang thực hiện", "Chờ duyệt"].index(selected_task["status"]))
 
             update_btn = st.form_submit_button("💾 Cập nhật công việc")
 
