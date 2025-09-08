@@ -82,6 +82,9 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
 if tasks:
     df = pd.DataFrame(tasks)
 
+    # Thêm cột nhắc việc
+    df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
+
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
         st.dataframe(df, use_container_width=True)
 
@@ -90,6 +93,12 @@ if tasks:
         status_chart.columns = ["Trạng thái", "Số lượng"]
         fig = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("📈 Công việc cần nhắc"):
+        reminder_chart = df["🔔 Nhắc việc"].value_counts().reset_index()
+        reminder_chart.columns = ["Nhắc việc", "Số lượng"]
+        fig2 = px.bar(reminder_chart, x="Nhắc việc", y="Số lượng", title="Số lượng công việc cần nhắc", color="Nhắc việc")
+        st.plotly_chart(fig2, use_container_width=True)
 
     with st.expander("📥 Tải xuống dữ liệu"):
         excel_data = to_excel(df)
@@ -101,6 +110,7 @@ if tasks:
         )
 else:
     st.info("📭 Chưa có công việc nào được ghi nhận.")
+
 
 
 
