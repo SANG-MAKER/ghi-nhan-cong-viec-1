@@ -3,7 +3,7 @@ import json
 import os
 import pandas as pd
 import io
-from datetime import datetime
+from datetime import datetime, date
 import plotly.express as px
 
 # --- Cấu hình giao diện ---
@@ -47,7 +47,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
             project = st.selectbox("📁 Dự án", ["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"])
         with col2:
             category = st.selectbox("📂 Hạng mục", ["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"])
-            date = st.date_input("📅 Ngày thực hiện", value=datetime.today())
+            date_work = st.date_input("📅 Ngày thực hiện", value=datetime.today())
             time = st.time_input("⏰ Thời gian bắt đầu", value=datetime.now().time())
 
         task = st.text_area("🛠️ Nội dung công việc")
@@ -60,9 +60,9 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
         with col4:
             status = st.radio("📌 Trạng thái công việc", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"])
 
-        next_plan = None
+        next_plan = ""
         if status != "Hoàn thành":
-            next_plan = st.date_input("📆 Ngày dự kiến hoàn thành tiếp theo")
+            next_plan = st.date_input("📆 Ngày dự kiến hoàn thành tiếp theo", value=None)
 
         submitted = st.form_submit_button("✅ Ghi nhận")
         if submitted:
@@ -73,7 +73,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
                 "category": category,
                 "task": task.strip(),
                 "note": note.strip(),
-                "date": str(date),
+                "date": str(date_work),
                 "time": time.strftime("%H:%M"),
                 "repeat": repeat,
                 "status": status,
@@ -92,8 +92,26 @@ if tasks:
     # Thêm cột nhắc việc
     df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
 
+    # Cảnh báo tới hạn
+    def check_overdue(row):
+        if row["status"] != "Hoàn thành":
+            try:
+                deadline_date = datetime.strptime(row["deadline"], "%Y-%m-%d").date()
+                if deadline_date < date.today():
+                    return "🔴 Đã quá hạn!"
+            except:
+                return ""
+        return ""
+
+    df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
+
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
-        st.dataframe(df, use_container_width=True)
+        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+        if st.button("💾 Lưu thay đổi"):
+            tasks = edited_df.to_dict(orient="records")
+            save_tasks(DATA_FILE, tasks)
+            st.success("✅ Dữ liệu đã được cập nhật!")
+            st.rerun()
 
     with st.expander("📈 Thống kê công việc theo trạng thái"):
         status_chart = df["status"].value_counts().reset_index()
@@ -117,7 +135,6 @@ if tasks:
         )
 else:
     st.info("📭 Chưa có công việc nào được ghi nhận.")
-
 
 
 
