@@ -52,12 +52,17 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
 
         task = st.text_area("🛠️ Nội dung công việc")
         note = st.text_area("🗒️ Ghi chú")
+        deadline = st.date_input("📅 Ngày tới hạn")
 
         col3, col4 = st.columns([1, 2])
         with col3:
             repeat = st.number_input("🔁 Số lần thực hiện", min_value=1, step=1, value=1)
         with col4:
             status = st.radio("📌 Trạng thái công việc", ["Hoàn thành", "Đang thực hiện", "Chờ duyệt", "Ngưng chờ", "Bỏ"])
+
+        next_plan = None
+        if status != "Hoàn thành":
+            next_plan = st.date_input("📆 Ngày dự kiến hoàn thành tiếp theo")
 
         submitted = st.form_submit_button("✅ Ghi nhận")
         if submitted:
@@ -71,7 +76,9 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
                 "date": str(date),
                 "time": time.strftime("%H:%M"),
                 "repeat": repeat,
-                "status": status
+                "status": status,
+                "deadline": str(deadline),
+                "next_plan": str(next_plan) if next_plan else ""
             }
             tasks.append(new_task)
             save_tasks(DATA_FILE, tasks)
