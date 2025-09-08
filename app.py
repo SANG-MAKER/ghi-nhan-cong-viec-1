@@ -63,7 +63,6 @@ with st.form("task_form"):
         st.success("🎉 Công việc đã được ghi nhận!")
        st.rerun()
 
-
 # --- Hiển thị bảng và xuất Excel ---
 if tasks:
     df = pd.DataFrame(tasks)
