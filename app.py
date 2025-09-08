@@ -61,7 +61,7 @@ with st.form("task_form"):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
-       st.rerun()
+        st.rerun()
 
 # --- Hiển thị bảng và xuất Excel ---
 if tasks:
@@ -73,7 +73,7 @@ if tasks:
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Tasks')
-        writer.save()
+        writer.close()
         processed_data = output.getvalue()
 
     # Nút tải file Excel
