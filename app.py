@@ -61,7 +61,8 @@ with st.form("task_form"):
         with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
-        st.experimental_rerun()
+       st.rerun()
+
 
 # --- Hiển thị bảng và xuất Excel ---
 if tasks:
