@@ -3,17 +3,18 @@ import json
 import os
 import pandas as pd
 import io
-from datetime import datetime, timedelta
-import plotly.express as px
+from datetime import datetime
 
+# --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
 st.title("📋 Ghi nhận công việc")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
+# --- Đường dẫn file dữ liệu ---
 DATA_FILE = "tasks.json"
 tasks = []
 
-# Đọc dữ liệu
+# --- Đọc dữ liệu từ file JSON ---
 if os.path.exists(DATA_FILE):
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -22,7 +23,7 @@ if os.path.exists(DATA_FILE):
         st.warning("⚠️ File dữ liệu bị lỗi. Đang khởi tạo lại danh sách trống.")
         tasks = []
 
-# --- Biểu mẫu ghi nhận ---
+# --- Biểu mẫu ghi nhận công việc ---
 with st.form("task_form"):
     st.markdown("### 👤 Thông tin người thực hiện")
     name = st.text_input("Tên người thực hiện")
@@ -61,5 +62,28 @@ with st.form("task_form"):
             json.dump(tasks, f, ensure_ascii=False, indent=2)
         st.success("🎉 Công việc đã được ghi nhận!")
         st.experimental_rerun()
+
+# --- Hiển thị bảng và xuất Excel ---
+if tasks:
+    df = pd.DataFrame(tasks)
+    st.markdown("### 📊 Danh sách công việc đã ghi nhận")
+    st.dataframe(df, use_container_width=True)
+
+    # Tạo file Excel trong bộ nhớ
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Tasks')
+        writer.save()
+        processed_data = output.getvalue()
+
+    # Nút tải file Excel
+    st.download_button(
+        label="📥 Tải xuống danh sách công việc (Excel)",
+        data=processed_data,
+        file_name="tasks.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+else:
+    st.info("📭 Chưa có công việc nào được ghi nhận.")
 
 
