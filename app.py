@@ -176,7 +176,16 @@ if tasks:
         st.dataframe(kpi_df, use_container_width=True)
 
     # 📅 Lịch công việc theo ngày
-    with st.expander("📅 Lịch công việc theo ngày"):
-        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
-        calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
-        calendar_df.columns = ["
+with st.expander("📅 Lịch công việc theo ngày"):
+    df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
+    calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
+    calendar_df.columns = ["Ngày", "Số lượng công việc"]
+    fig_calendar = px.bar(
+        calendar_df,
+        x="Ngày",
+        y="Số lượng công việc",
+        title="Lịch công việc theo ngày",
+        color="Số lượng công việc"
+    )
+    st.plotly_chart(fig_calendar, use_container_width=True)
+
