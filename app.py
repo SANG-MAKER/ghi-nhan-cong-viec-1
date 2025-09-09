@@ -51,7 +51,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
             project = st.selectbox("📁 Dự án", ["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"])
         with col2:
             task_type = st.selectbox("🧱 Công việc", ["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"])
-            task_group = st.selectbox("📂 Hạng mục", ["Hạng mục A", "Hạng mục B", "Hạng mục C"])
+           task_group = st.text_input("📂 Hạng mục (nhập tay)")
             date_work = st.date_input("📅 Ngày thực hiện", value=datetime.today())
             time = st.time_input("⏰ Thời gian bắt đầu", value=datetime.now().time())
 
@@ -161,7 +161,11 @@ if tasks:
         type_chart.columns = ["Công việc", "Số lượng"]
         fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
         st.plotly_chart(fig_type, use_container_width=True)
-
+    # Thống kê KPI theo người thực hiện
+    with st.expander("📊 Thống kê KPI theo người thực hiện"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
+        st.dataframe(kpi_df, use_container_width=True)
 with st.expander("📥 Tải xuống dữ liệu"):
     excel_data = to_excel(df)
     st.download_button(
