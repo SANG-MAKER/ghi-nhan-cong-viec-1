@@ -53,6 +53,8 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
         task = st.text_area("🛠️ Nội dung công việc")
         note = st.text_area("🗒️ Ghi chú")
         deadline = st.date_input("📅 Ngày tới hạn")
+        feedback = st.text_area("💬 Phản hồi")
+        feedback_date = st.date_input("📅 Ngày phản hồi", value=None)
 
         col3, col4 = st.columns([1, 2])
         with col3:
@@ -78,6 +80,8 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
                 "repeat": repeat,
                 "status": status,
                 "deadline": str(deadline),
+                "feedback": feedback.strip(),
+                "feedback_date": str(feedback_date) if feedback_date else "",
                 "next_plan": str(next_plan) if next_plan else ""
             }
             tasks.append(new_task)
@@ -125,6 +129,18 @@ if tasks:
         fig2 = px.bar(reminder_chart, x="Nhắc việc", y="Số lượng", title="Số lượng công việc cần nhắc", color="Nhắc việc")
         st.plotly_chart(fig2, use_container_width=True)
 
+    with st.expander("📊 Thống kê theo dự án"):
+        project_chart = df["project"].value_counts().reset_index()
+        project_chart.columns = ["Dự án", "Số lượng"]
+        fig_proj = px.bar(project_chart, x="Dự án", y="Số lượng", title="Số lượng công việc theo dự án", color="Dự án")
+        st.plotly_chart(fig_proj, use_container_width=True)
+
+    with st.expander("📊 Thống kê theo hạng mục"):
+        category_chart = df["category"].value_counts().reset_index()
+        category_chart.columns = ["Hạng mục", "Số lượng"]
+        fig_cat = px.bar(category_chart, x="Hạng mục", y="Số lượng", title="Số lượng công việc theo hạng mục", color="Hạng mục")
+        st.plotly_chart(fig_cat, use_container_width=True)
+
     with st.expander("📥 Tải xuống dữ liệu"):
         excel_data = to_excel(df)
         st.download_button(
@@ -135,6 +151,4 @@ if tasks:
         )
 else:
     st.info("📭 Chưa có công việc nào được ghi nhận.")
-
-
 
