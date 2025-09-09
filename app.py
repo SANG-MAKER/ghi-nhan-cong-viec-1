@@ -167,7 +167,7 @@ if tasks:
         status_chart.columns = ["Trạng thái", "Số lượng"]
         fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
-        with st.expander("📥 Tải xuống dữ liệu"):
+    with st.expander("📥 Tải xuống dữ liệu"):
     df_excel = df.rename(columns=column_mapping)
     excel_data = to_excel(df_excel)
     st.download_button(
