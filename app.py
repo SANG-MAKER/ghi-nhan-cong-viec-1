@@ -181,4 +181,4 @@ if tasks:
         st.plotly_chart(fig_stacked, use_container_width=True)
 
     with st.expander("📊 Thống kê theo loại Công việc"):
-        type_chart
+        type_chart = df["task_type"].
