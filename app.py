@@ -34,11 +34,15 @@ def to_excel(df):
         df.to_excel(writer, index=False, sheet_name='Tasks')
     return output.getvalue()
 
+# --- Phân quyền người dùng ---
+role = st.sidebar.selectbox("🔐 Vai trò người dùng", ["Nhân viên", "Quản lý"])
+st.sidebar.markdown(f"**Bạn đang đăng nhập với vai trò:** `{role}`")
+
 # --- Đọc dữ liệu ---
 tasks = load_tasks(DATA_FILE)
 
 # --- Biểu mẫu ghi nhận công việc ---
-with st.expander("📝 Ghi nhận công việc mới", expanded=True):
+with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân viên")):
     with st.form("task_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -95,6 +99,23 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
 if tasks:
     df = pd.DataFrame(tasks)
 
+    # Bộ lọc dữ liệu
+    with st.sidebar.expander("🔎 Bộ lọc dữ liệu"):
+        selected_project = st.selectbox("📁 Lọc theo dự án", ["Tất cả"] + df["project"].unique().tolist())
+        selected_status = st.selectbox("📌 Lọc theo trạng thái", ["Tất cả"] + df["status"].unique().tolist())
+        selected_department = st.selectbox("🏢 Lọc theo phòng ban", ["Tất cả"] + df["department"].unique().tolist())
+        selected_name = st.selectbox("👤 Lọc theo người thực hiện", ["Tất cả"] + df["name"].unique().tolist())
+
+    # Áp dụng bộ lọc
+    if selected_project != "Tất cả":
+        df = df[df["project"] == selected_project]
+    if selected_status != "Tất cả":
+        df = df[df["status"] == selected_status]
+    if selected_department != "Tất cả":
+        df = df[df["department"] == selected_department]
+    if selected_name != "Tất cả":
+        df = df[df["name"] == selected_name]
+
     # Thêm cột nhắc việc
     df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
 
@@ -111,6 +132,7 @@ if tasks:
 
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
 
+    # Danh sách công việc
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
         edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
         if st.button("💾 Lưu thay đổi"):
@@ -123,32 +145,22 @@ if tasks:
     with st.expander("📈 Thống kê công việc theo trạng thái"):
         status_chart = df["status"].value_counts().reset_index()
         status_chart.columns = ["Trạng thái", "Số lượng"]
-        fig = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
-        st.plotly_chart(fig, use_container_width=True)
+        fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
+        st.plotly_chart(fig_status, use_container_width=True)
 
-    # Biểu đồ công việc (task_type)
-    with st.expander("📈 Thống kê theo loại công việc"):
-        type_chart = df["task_type"].value_counts().reset_index()
-        type_chart.columns = ["Công việc", "Số lượng"]
-        fig_type = px.pie(type_chart, names="Công việc", values="Số lượng", title="Tỷ lệ loại công việc", hole=0.3)
-        st.plotly_chart(fig_type, use_container_width=True)
-
-    # Biểu đồ hạng mục (task_group)
-    with st.expander("📈 Thống kê theo hạng mục"):
+    # Biểu đồ tròn theo Hạng mục
+    with st.expander("📈 Thống kê theo Hạng mục"):
         group_chart = df["task_group"].value_counts().reset_index()
         group_chart.columns = ["Hạng mục", "Số lượng"]
-        fig_group = px.pie(group_chart, names="Hạng mục", values="Số lượng", title="Tỷ lệ hạng mục công việc", hole=0.3)
+        fig_group = px.pie(group_chart, names="Hạng mục", values="Số lượng", title="Tỷ lệ công việc theo Hạng mục", hole=0.3)
         st.plotly_chart(fig_group, use_container_width=True)
 
-    # Biểu đồ công việc theo từng dự án
-    with st.expander("📈 Biểu đồ công việc theo từng dự án"):
-        for proj in df["project"].unique():
-            proj_df = df[df["project"] == proj]
-            if not proj_df.empty:
-                chart = proj_df["task_type"].value_counts().reset_index()
-                chart.columns = ["Công việc", "Số lượng"]
-                fig_proj = px.pie(chart, names="Công việc", values="Số lượng", title=f"{proj}", hole=0.3)
-                st.plotly_chart(fig_proj, use_container_width=True)
+    # Biểu đồ cột theo Công việc
+    with st.expander("📊 Thống kê theo loại Công việc"):
+        type_chart = df["task_type"].value_counts().reset_index()
+        type_chart.columns = ["Công việc", "Số lượng"]
+        fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
+        st.plotly_chart(fig_type, use_container_width=True)
 
     # Tải xuống dữ liệu
     with st.expander("📥 Tải xuống dữ liệu"):
@@ -157,9 +169,5 @@ if tasks:
             label="📥 Tải xuống danh sách công việc (Excel)",
             data=excel_data,
             file_name="tasks.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-else:
-    st.info("📭 Chưa có công việc nào được ghi nhận.")
-
+            mime="application/vnd.openxmlformats-officedocument.spread
 
