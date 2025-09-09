@@ -74,7 +74,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
         submitted = st.form_submit_button("✅ Ghi nhận")
         if submitted:
             new_task = {
-                "Tên": name.strip(),
+                "Tên": Tên.strip(),
                 "department": department.strip(),
                 "project": project,
                 "task_type": task_type,
