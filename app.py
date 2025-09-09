@@ -168,14 +168,12 @@ if tasks:
         fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
 
-    with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
-        stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
-        fig_stacked = px.bar(
-            stacked_df,
-            x="project",
-            y="Số lượng",
-            color="task_group",
-            title="Số lượng công việc theo Hạng mục trong từng Dự án",
-            barmode="stack"
-        )
-        st.plotly_chart(fig_stacked, use
+    with st.expander("📥 Tải xuống dữ liệu"):
+    df_excel = df.rename(columns=column_mapping)
+    excel_data = to_excel(df_excel)
+    st.download_button(
+        label="📥 Tải xuống danh sách công việc (Excel)",
+        data=excel_data,
+        file_name="tasks.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
