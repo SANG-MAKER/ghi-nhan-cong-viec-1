@@ -30,28 +30,32 @@ def save_tasks(file_path, tasks):
 
 def to_excel(df):
     output = io.BytesIO()
-    df_renamed = df.rename(columns={
-        "name": "Người thực hiện",
-        "department": "Phòng ban",
-        "project": "Dự án",
-        "task_type": "Loại công việc",
-        "task_group": "Hạng mục",
-        "task": "Nội dung công việc",
-        "note": "Ghi chú",
-        "feedback": "Phản hồi",
-        "feedback_date": "Ngày phản hồi",
-        "date": "Ngày thực hiện",
-        "time": "Thời gian bắt đầu",
-        "repeat": "Số lần thực hiện",
-        "status": "Trạng thái",
-        "deadline": "Ngày tới hạn",
-        "next_plan": "Kế hoạch tiếp theo",
-        "🔔 Nhắc việc": "Nhắc việc",
-        "⚠️ Cảnh báo": "Cảnh báo"
-    })
+    df_renamed = df.rename(columns=column_mapping)
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df_renamed.to_excel(writer, index=False, sheet_name='Danh sách công việc')
     return output.getvalue()
+
+# --- Đổi tên cột sang tiếng Việt ---
+column_mapping = {
+    "name": "Người thực hiện",
+    "department": "Phòng ban",
+    "project": "Dự án",
+    "task_type": "Loại công việc",
+    "task_group": "Hạng mục",
+    "task": "Nội dung công việc",
+    "note": "Ghi chú",
+    "feedback": "Phản hồi",
+    "feedback_date": "Ngày phản hồi",
+    "date": "Ngày thực hiện",
+    "time": "Thời gian bắt đầu",
+    "repeat": "Số lần thực hiện",
+    "status": "Trạng thái",
+    "deadline": "Ngày tới hạn",
+    "next_plan": "Kế hoạch tiếp theo",
+    "🔔 Nhắc việc": "Nhắc việc",
+    "⚠️ Cảnh báo": "Cảnh báo"
+}
+reverse_mapping = {v: k for k, v in column_mapping.items()}
 
 # --- Phân quyền người dùng ---
 role = st.sidebar.selectbox("🔐 Vai trò người dùng", ["Nhân viên", "Quản lý"])
@@ -150,33 +154,27 @@ if tasks:
 
     # Danh sách công việc (hiển thị tiếng Việt)
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
-        df_display = df.rename(columns={
-            "name": "Người thực hiện",
-            "department": "Phòng ban",
-            "project": "Dự án",
-            "task_type": "Loại công việc",
-            "task_group": "Hạng mục",
-            "task": "Nội dung công việc",
-            "note": "Ghi chú",
-            "feedback": "Phản hồi",
-            "feedback_date": "Ngày phản hồi",
-            "date": "Ngày thực hiện",
-            "time": "Thời gian bắt đầu",
-            "repeat": "Số lần thực hiện",
-            "status": "Trạng thái",
-            "deadline": "Ngày tới hạn",
-            "next_plan": "Kế hoạch tiếp theo",
-            "🔔 Nhắc việc": "Nhắc việc",
-            "⚠️ Cảnh báo": "Cảnh báo"
-        })
+        df_display = df.rename(columns=column_mapping)
         edited_df = st.data_editor(df_display, num_rows="dynamic", use_container_width=True)
         if st.button("💾 Lưu thay đổi"):
-            tasks = edited_df.rename(columns={v: k for k, v in df_display.columns.to_dict().items()}).to_dict(orient="records")
+            df_saved = edited_df.rename(columns=reverse_mapping)
+            tasks = df_saved.to_dict(orient="records")
             save_tasks(DATA_FILE, tasks)
             st.success("✅ Dữ liệu đã được cập nhật!")
             st.rerun()
 
     # Biểu đồ trạng thái
-    with st.expander("📈 Th
+    with st.expander("📈 Thống kê công việc theo trạng thái"):
+        status_chart = df["status"].value_counts().reset_index()
+        status_chart.columns = ["Trạng thái", "Số lượng"]
+        fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
+        st.plotly_chart(fig_status, use_container_width=True)
 
-
+    # Biểu đồ cột chồng theo Hạng mục và Dự án
+    with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
+        stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
+        fig_stacked = px.bar(
+            stacked_df,
+            x="project",
+            y="Số lượng",
+            color="task
