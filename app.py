@@ -179,6 +179,7 @@ if tasks:
             barmode="stack"
         )
         st.plotly_chart(fig_stacked, use_container_width=True)
+        
     with st.expander("📊 Thống kê theo loại Công việc"):
     type_chart = df["task_type"].value_counts().reset_index()
     type_chart.columns = ["Loại công việc", "Số lượng"]
