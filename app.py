@@ -162,12 +162,13 @@ if tasks:
         fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
         st.plotly_chart(fig_type, use_container_width=True)
 
-    # Tải xuống dữ liệu
-    with st.expander("📥 Tải xuống dữ liệu"):
-        excel_data = to_excel(df)
-        st.download_button(
-            label="📥 Tải xuống danh sách công việc (Excel)",
-            data=excel_data,
-            file_name="tasks.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spread
+with st.expander("📥 Tải xuống dữ liệu"):
+    excel_data = to_excel(df)
+    st.download_button(
+        label="📥 Tải xuống danh sách công việc (Excel)",
+        data=excel_data,
+        file_name="tasks.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 
