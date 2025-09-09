@@ -14,28 +14,6 @@ st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp
 # --- Đường dẫn file dữ liệu ---
 DATA_FILE = "tasks.json"
 
-# --- Đổi tên cột sang tiếng Việt ---
-column_mapping = {
-    "name": "Người thực hiện",
-    "department": "Phòng ban",
-    "project": "Dự án",
-    "task_type": "Loại công việc",
-    "task_group": "Hạng mục",
-    "task": "Nội dung công việc",
-    "note": "Ghi chú",
-    "feedback": "Phản hồi",
-    "feedback_date": "Ngày phản hồi",
-    "date": "Ngày thực hiện",
-    "time": "Thời gian bắt đầu",
-    "repeat": "Số lần thực hiện",
-    "status": "Trạng thái",
-    "deadline": "Ngày tới hạn",
-    "next_plan": "Kế hoạch tiếp theo",
-    "🔔 Nhắc việc": "Nhắc việc",
-    "⚠️ Cảnh báo": "Cảnh báo"
-}
-reverse_mapping = {v: k for k, v in column_mapping.items()}
-
 # --- Hàm xử lý dữ liệu ---
 def load_tasks(file_path):
     if os.path.exists(file_path):
@@ -52,9 +30,8 @@ def save_tasks(file_path, tasks):
 
 def to_excel(df):
     output = io.BytesIO()
-    df_renamed = df.rename(columns=column_mapping)
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_renamed.to_excel(writer, index=False, sheet_name='Danh sách công việc')
+        df.to_excel(writer, index=False, sheet_name='Tasks')
     return output.getvalue()
 
 # --- Phân quyền người dùng ---
@@ -153,11 +130,9 @@ if tasks:
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
 
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
-        df_display = df.rename(columns=column_mapping)
-        edited_df = st.data_editor(df_display, num_rows="dynamic", use_container_width=True)
+        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
         if st.button("💾 Lưu thay đổi"):
-            df_saved = edited_df.rename(columns=reverse_mapping)
-            tasks = df_saved.to_dict(orient="records")
+            tasks = edited_df.to_dict(orient="records")
             save_tasks(DATA_FILE, tasks)
             st.success("✅ Dữ liệu đã được cập nhật!")
             st.rerun()
@@ -167,14 +142,41 @@ if tasks:
         status_chart.columns = ["Trạng thái", "Số lượng"]
         fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
-    with st.expander("📥 Tải xuống dữ liệu"):
-    df_excel = df.rename(columns=column_mapping)
-    excel_data = to_excel(df_excel)
-    st.download_button(
-        label="📥 Tải xuống danh sách công việc (Excel)",
-        data=excel_data,
-        file_name="tasks.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
 
+    with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
+        stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
+        fig_stacked = px.bar(
+            stacked_df,
+            x="project",
+            y="Số lượng",
+            color="task_group",
+            title="Số lượng công việc theo Hạng mục trong từng Dự án",
+            barmode="stack"
+        )
+        st.plotly_chart(fig_stacked, use_container_width=True)
+
+    with st.expander("📊 Thống kê theo loại Công việc"):
+        type_chart = df["task_type"].value_counts().reset_index()
+        type_chart.columns = ["Công việc", "Số lượng"]
+        fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
+        st.plotly_chart(fig_type, use_container_width=True)
+
+    with st.expander("📊 KPI theo nhân sự"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
+        kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
+        st.dataframe(kpi_df, use_container_width=True)
+
+    with st.expander("📅 Lịch công việc theo ngày"):
+        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
+        calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
+        calendar_df.columns = ["Ngày", "Số lượng công việc"]
+        fig_calendar = px.bar(
+            calendar_df,
+            x="Ngày",
+            y="Số lượng công việc",
+            title="Lịch công việc theo ngày",
+            color="Số lượng công việc"
+        )
+        st.plotly_chart(fig_calendar, use_container_width=True)
 
