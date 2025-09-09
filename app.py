@@ -173,11 +173,4 @@ if tasks:
     # Biểu đồ theo Hạng mục và Dự án
     with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
         stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
-        fig_stacked = px.bar(
-            stacked_df,
-            x="project",
-            y="Số lượng",
-            color="task_group",
-            title="Số lượng công việc theo Hạng mục trong từng Dự án",
-            barmode="stack"
-
+        fig_stacked
