@@ -189,5 +189,15 @@ with st.expander("📅 Lịch công việc theo ngày"):
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
+# 📥 Tải xuống dữ liệu
+with st.expander("📥 Tải xuống dữ liệu"):
+    excel_data = to_excel(df)
+    st.download_button(
+        label="📥 Tải xuống danh sách công việc (Excel)",
+        data=excel_data,
+        file_name="tasks.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 
 
