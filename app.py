@@ -174,7 +174,7 @@ if tasks:
         kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
         kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
         st.dataframe(kpi_df, use_container_width=True)
-# Lịch công việc theo ngày
+    # Lịch công việc theo ngày
 with st.expander("📅 Lịch công việc theo ngày"):
     df["Ngày thực hiện"] = pd.to_datetime(df["date"])
     calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
