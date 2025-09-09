@@ -5,6 +5,7 @@ import pandas as pd
 import io
 from datetime import datetime, date
 import plotly.express as px
+import calendar
 
 # --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
@@ -34,11 +35,15 @@ def to_excel(df):
         df.to_excel(writer, index=False, sheet_name='Tasks')
     return output.getvalue()
 
+# --- Phân quyền người dùng ---
+role = st.sidebar.selectbox("🔐 Vai trò người dùng", ["Nhân viên", "Quản lý"])
+st.sidebar.markdown(f"**Bạn đang đăng nhập với vai trò:** `{role}`")
+
 # --- Đọc dữ liệu ---
 tasks = load_tasks(DATA_FILE)
 
 # --- Biểu mẫu ghi nhận công việc ---
-with st.expander("📝 Ghi nhận công việc mới", expanded=True):
+with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân viên")):
     with st.form("task_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -93,6 +98,23 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=True):
 if tasks:
     df = pd.DataFrame(tasks)
 
+    # Bộ lọc dữ liệu
+    with st.sidebar.expander("🔎 Bộ lọc dữ liệu"):
+        selected_project = st.selectbox("📁 Lọc theo dự án", ["Tất cả"] + df["project"].unique().tolist())
+        selected_status = st.selectbox("📌 Lọc theo trạng thái", ["Tất cả"] + df["status"].unique().tolist())
+        selected_department = st.selectbox("🏢 Lọc theo phòng ban", ["Tất cả"] + df["department"].unique().tolist())
+        selected_name = st.selectbox("👤 Lọc theo người thực hiện", ["Tất cả"] + df["name"].unique().tolist())
+
+    # Áp dụng bộ lọc
+    if selected_project != "Tất cả":
+        df = df[df["project"] == selected_project]
+    if selected_status != "Tất cả":
+        df = df[df["status"] == selected_status]
+    if selected_department != "Tất cả":
+        df = df[df["department"] == selected_department]
+    if selected_name != "Tất cả":
+        df = df[df["name"] == selected_name]
+
     # Thêm cột nhắc việc
     df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
 
@@ -108,6 +130,20 @@ if tasks:
         return ""
 
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
+
+    # Dashboard tổng quan
+    with st.expander("📊 Dashboard tổng quan", expanded=(role == "Quản lý")):
+        col1, col2, col3 = st.columns(3)
+        col1.metric("📌 Tổng công việc", len(df))
+        col2.metric("✅ Hoàn thành", df[df["status"] == "Hoàn thành"].shape[0])
+        col3.metric("🔔 Cần nhắc", df[df["🔔 Nhắc việc"] == "Cần nhắc"].shape[0])
+
+    with st.expander("📅 Lịch công việc"):
+        df["Ngày"] = pd.to_datetime(df["date"])
+        calendar_df = df.groupby(df["Ngày"].dt.date)["task"].count().reset_index()
+        calendar_df.columns = ["Ngày", "Số lượng"]
+        fig_cal = px.bar(calendar_df, x="Ngày", y="Số lượng", title="Lịch công việc theo ngày", color="Số lượng")
+        st.plotly_chart(fig_cal, use_container_width=True)
 
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
         edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
@@ -129,26 +165,4 @@ if tasks:
         fig2 = px.bar(reminder_chart, x="Nhắc việc", y="Số lượng", title="Số lượng công việc cần nhắc", color="Nhắc việc")
         st.plotly_chart(fig2, use_container_width=True)
 
-    with st.expander("📊 Thống kê theo dự án"):
-        project_chart = df["project"].value_counts().reset_index()
-        project_chart.columns = ["Dự án", "Số lượng"]
-        fig_proj = px.bar(project_chart, x="Dự án", y="Số lượng", title="Số lượng công việc theo dự án", color="Dự án")
-        st.plotly_chart(fig_proj, use_container_width=True)
-
-    with st.expander("📊 Thống kê theo hạng mục"):
-        category_chart = df["category"].value_counts().reset_index()
-        category_chart.columns = ["Hạng mục", "Số lượng"]
-        fig_cat = px.bar(category_chart, x="Hạng mục", y="Số lượng", title="Số lượng công việc theo hạng mục", color="Hạng mục")
-        st.plotly_chart(fig_cat, use_container_width=True)
-
-    with st.expander("📥 Tải xuống dữ liệu"):
-        excel_data = to_excel(df)
-        st.download_button(
-            label="📥 Tải xuống danh sách công việc (Excel)",
-            data=excel_data,
-            file_name="tasks.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-else:
-    st.info("📭 Chưa có công việc nào được ghi nhận.")
 
