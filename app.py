@@ -5,7 +5,6 @@ import pandas as pd
 import io
 from datetime import datetime, date
 import plotly.express as px
-import calendar
 
 # --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 Ghi nhận công việc", page_icon="✅", layout="wide")
@@ -131,6 +130,14 @@ if tasks:
 
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
 
+    # Tạo cột hạng mục cho từng dự án
+    projects = df["project"].unique()
+    categories = df["category"].unique()
+    for proj in projects:
+        for cat in categories:
+            col_name = f"{cat}_{proj.replace(' ', '').replace('Dựán', '')}"
+            df[col_name] = df.apply(lambda row: 1 if row["project"] == proj and row["category"] == cat else 0, axis=1)
+
     # Dashboard tổng quan
     with st.expander("📊 Dashboard tổng quan", expanded=(role == "Quản lý")):
         col1, col2, col3 = st.columns(3)
@@ -138,6 +145,13 @@ if tasks:
         col2.metric("✅ Hoàn thành", df[df["status"] == "Hoàn thành"].shape[0])
         col3.metric("🔔 Cần nhắc", df[df["🔔 Nhắc việc"] == "Cần nhắc"].shape[0])
 
+    # KPI theo người thực hiện
+    with st.expander("📊 KPI theo người thực hiện"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng"] = kpi_df.sum(axis=1)
+        st.dataframe(kpi_df, use_container_width=True)
+
+    # Lịch công việc
     with st.expander("📅 Lịch công việc"):
         df["Ngày"] = pd.to_datetime(df["date"])
         calendar_df = df.groupby(df["Ngày"].dt.date)["task"].count().reset_index()
@@ -145,6 +159,7 @@ if tasks:
         fig_cal = px.bar(calendar_df, x="Ngày", y="Số lượng", title="Lịch công việc theo ngày", color="Số lượng")
         st.plotly_chart(fig_cal, use_container_width=True)
 
+    # Danh sách công việc
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
         edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
         if st.button("💾 Lưu thay đổi"):
@@ -153,16 +168,7 @@ if tasks:
             st.success("✅ Dữ liệu đã được cập nhật!")
             st.rerun()
 
+    # Biểu đồ trạng thái
     with st.expander("📈 Thống kê công việc theo trạng thái"):
-        status_chart = df["status"].value_counts().reset_index()
-        status_chart.columns = ["Trạng thái", "Số lượng"]
-        fig = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
-        st.plotly_chart(fig, use_container_width=True)
-
-    with st.expander("📈 Công việc cần nhắc"):
-        reminder_chart = df["🔔 Nhắc việc"].value_counts().reset_index()
-        reminder_chart.columns = ["Nhắc việc", "Số lượng"]
-        fig2 = px.bar(reminder_chart, x="Nhắc việc", y="Số lượng", title="Số lượng công việc cần nhắc", color="Nhắc việc")
-        st.plotly_chart(fig2, use_container_width=True)
-
+        status_chart = df["status"].value_counts().reset_index
 
