@@ -46,7 +46,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
     with st.form("task_form"):
         col1, col2 = st.columns(2)
         with col1:
-            ten = st.text_input("👤 Tên người thực hiện")
+            name = st.text_input("👤 Tên người thực hiện")
             department = st.text_input("🏢 Phòng ban")
             project = st.selectbox("📁 Dự án", ["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"])
         with col2:
@@ -74,7 +74,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
         submitted = st.form_submit_button("✅ Ghi nhận")
         if submitted:
             new_task = {
-                "Ten": Ten.strip(),
+                "Ten": name.strip(),
                 "department": department.strip(),
                 "project": project,
                 "task_type": task_type,
