@@ -8,7 +8,7 @@ import plotly.express as px
 
 # --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 TRACKING", page_icon="✅", layout="wide")
-st.title("📋 Ghi nhận công việc")
+st.title("📋 TRACKING")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
 # --- Đường dẫn file dữ liệu ---
