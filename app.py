@@ -180,5 +180,37 @@ if tasks:
         )
         st.plotly_chart(fig_stacked, use_container_width=True)
 
-    with st.expander("📊 Thống kê theo loại Công việc"):
-        type_chart = df["task_type"].
+        with st.expander("📊 Thống kê theo loại Công việc"):
+        type_chart = df["task_type"].value_counts().reset_index()
+        type_chart.columns = ["Loại công việc", "Số lượng"]
+        fig_type = px.bar(type_chart, x="Loại công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Loại công việc")
+        st.plotly_chart(fig_type, use_container_width=True)
+
+    with st.expander("📊 KPI theo nhân sự"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
+        kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
+        st.dataframe(kpi_df, use_container_width=True)
+
+    with st.expander("📅 Lịch công việc theo ngày"):
+        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
+        calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
+        calendar_df.columns = ["Ngày", "Số lượng công việc"]
+        fig_calendar = px.bar(
+            calendar_df,
+            x="Ngày",
+            y="Số lượng công việc",
+            title="Lịch công việc theo ngày",
+            color="Số lượng công việc"
+        )
+        st.plotly_chart(fig_calendar, use_container_width=True)
+
+    with st.expander("📥 Tải xuống dữ liệu"):
+        df_excel = df.rename(columns=column_mapping)
+        excel_data = to_excel(df_excel)
+        st.download_button(
+            label="📥 Tải xuống danh sách công việc (Excel)",
+            data=excel_data,
+            file_name="tasks.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
