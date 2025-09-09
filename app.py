@@ -6,12 +6,15 @@ import io
 from datetime import datetime, date
 import plotly.express as px
 
+# --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 TRACKING", page_icon="✅", layout="wide")
 st.title("📋 TRACKING")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
 
+# --- Đường dẫn file dữ liệu ---
 DATA_FILE = "tasks.json"
 
+# --- Hàm xử lý dữ liệu ---
 def load_tasks(file_path):
     if os.path.exists(file_path):
         try:
@@ -31,11 +34,14 @@ def to_excel(df):
         df.to_excel(writer, index=False, sheet_name='Tasks')
     return output.getvalue()
 
+# --- Phân quyền người dùng ---
 role = st.sidebar.selectbox("🔐 Vai trò người dùng", ["Nhân viên", "Quản lý"])
 st.sidebar.markdown(f"**Bạn đang đăng nhập với vai trò:** `{role}`")
 
+# --- Đọc dữ liệu ---
 tasks = load_tasks(DATA_FILE)
 
+# --- Biểu mẫu ghi nhận công việc ---
 with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân viên")):
     with st.form("task_form"):
         col1, col2 = st.columns(2)
@@ -89,9 +95,11 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
             st.success("🎉 Công việc đã được ghi nhận!")
             st.rerun()
 
+# --- Hiển thị dữ liệu và biểu đồ ---
 if tasks:
     df = pd.DataFrame(tasks)
 
+    # Bộ lọc dữ liệu
     with st.sidebar.expander("🔎 Bộ lọc dữ liệu"):
         selected_project = st.selectbox("📁 Lọc theo dự án", ["Tất cả"] + df["project"].unique().tolist())
         selected_status = st.selectbox("📌 Lọc theo trạng thái", ["Tất cả"] + df["status"].unique().tolist())
@@ -122,11 +130,7 @@ if tasks:
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
 
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
-        df_cleaned = df.copy()
-        for col in ["feedback_date", "deadline", "next_plan"]:
-            if col in df_cleaned.columns:
-                df_cleaned[col] = df_cleaned[col].fillna("").astype(str)
-        edited_df = st.data_editor(df_cleaned, num_rows="dynamic", use_container_width=True)
+        edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
         if st.button("💾 Lưu thay đổi"):
             tasks = edited_df.to_dict(orient="records")
             save_tasks(DATA_FILE, tasks)
@@ -163,4 +167,20 @@ if tasks:
         kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
         st.dataframe(kpi_df, use_container_width=True)
 
-    with st.expander("📅 Lịch công việc theo ngày
+    with st.expander("📅 Lịch công việc theo ngày"):
+        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
+        calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
+        calendar_df.columns = ["Ngày", "Số lượng công việc"]
+        fig_calendar = px.bar(
+            calendar_df,
+            x="Ngày",
+            y="Số lượng công việc",
+            title="Lịch công việc theo ngày",
+            color="Số lượng công việc"
+        )
+        st.plotly_chart(fig_calendar, use_container_width=True)
+
+    with st.expander("📥 Tải xuống dữ liệu"):
+        excel_data = to_excel(df)
+        st.download_button(
+
