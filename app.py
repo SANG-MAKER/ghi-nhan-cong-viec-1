@@ -152,7 +152,6 @@ if tasks:
 
     df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
 
-    # Danh sách công việc (tiêu đề tiếng Việt)
     with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
         df_display = df.rename(columns=column_mapping)
         edited_df = st.data_editor(df_display, num_rows="dynamic", use_container_width=True)
@@ -163,17 +162,20 @@ if tasks:
             st.success("✅ Dữ liệu đã được cập nhật!")
             st.rerun()
 
-    # Biểu đồ trạng thái
     with st.expander("📈 Thống kê công việc theo trạng thái"):
         status_chart = df["status"].value_counts().reset_index()
         status_chart.columns = ["Trạng thái", "Số lượng"]
         fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
 
-    # Biểu đồ theo Hạng mục và Dự án
     with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
         stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
         fig_stacked = px.bar(
             stacked_df,
             x="project",
-            y="Số lượng
+            y="Số lượng",
+            color="task_group",
+            title="Số lượng công việc theo Hạng mục trong từng Dự án",
+            barmode="stack"
+        )
+        st.plotly_chart(fig_stacked, use
