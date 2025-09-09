@@ -51,7 +51,7 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
             project = st.selectbox("📁 Dự án", ["Dự án 43DTM", "Dự án VVIP", "Dự án GALERY"])
         with col2:
             task_type = st.selectbox("🧱 Công việc", ["Thiết kế", "Mua sắm", "Gia công", "Vận chuyển", "Lắp dựng"])
-           task_group = st.text_input("📂 Hạng mục (nhập tay)")
+            task_group = st.text_input("📂 Hạng mục (nhập tay)")
             date_work = st.date_input("📅 Ngày thực hiện", value=datetime.today())
             time = st.time_input("⏰ Thời gian bắt đầu", value=datetime.now().time())
 
