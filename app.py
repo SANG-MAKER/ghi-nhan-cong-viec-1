@@ -148,18 +148,18 @@ if tasks:
         fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
 
-   # Biểu đồ cột chồng theo Hạng mục và Dự án
-with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
-    stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
-    fig_stacked = px.bar(
-        stacked_df,
-        x="project",
-        y="Số lượng",
-        color="task_group",
-        title="Số lượng công việc theo Hạng mục trong từng Dự án",
-        barmode="stack"
-    )
-    st.plotly_chart(fig_stacked, use_container_width=True)
+    # Biểu đồ cột chồng theo Hạng mục và Dự án
+    with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
+        stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
+        fig_stacked = px.bar(
+            stacked_df,
+            x="project",
+            y="Số lượng",
+            color="task_group",
+            title="Số lượng công việc theo Hạng mục trong từng Dự án",
+            barmode="stack"
+        )
+        st.plotly_chart(fig_stacked, use_container_width=True)
 
     # Biểu đồ cột theo Công việc
     with st.expander("📊 Thống kê theo loại Công việc"):
@@ -167,20 +167,13 @@ with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án")
         type_chart.columns = ["Công việc", "Số lượng"]
         fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
         st.plotly_chart(fig_type, use_container_width=True)
-# Thống kê KPI theo nhân sự
-with st.expander("📊 KPI theo nhân sự"):
-    kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
-    kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
-    kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
-    st.dataframe(kpi_df, use_container_width=True)
+
+    # KPI theo nhân sự
+    with st.expander("📊 KPI theo nhân sự"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
+        kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
+        st.dataframe(kpi_df, use_container_width=True)
 
     # Tải xuống dữ liệu
-    with st.expander("📥 Tải xuống dữ liệu"):
-        excel_data = to_excel(df)
-        st.download_button(
-            label="📥 Tải xuống danh sách công việc (Excel)",
-            data=excel_data,
-            file_name="tasks.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
+    with st.expander("📥 Tải xuống dữ liệu
