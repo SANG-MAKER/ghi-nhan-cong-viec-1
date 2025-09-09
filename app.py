@@ -30,27 +30,8 @@ def save_tasks(file_path, tasks):
 
 def to_excel(df):
     output = io.BytesIO()
-    df_renamed = df.rename(columns={
-        "name": "Người thực hiện",
-        "department": "Phòng ban",
-        "project": "Dự án",
-        "task_type": "Loại công việc",
-        "task_group": "Hạng mục",
-        "task": "Nội dung công việc",
-        "note": "Ghi chú",
-        "feedback": "Phản hồi",
-        "feedback_date": "Ngày phản hồi",
-        "date": "Ngày thực hiện",
-        "time": "Thời gian bắt đầu",
-        "repeat": "Số lần thực hiện",
-        "status": "Trạng thái",
-        "deadline": "Ngày tới hạn",
-        "next_plan": "Kế hoạch tiếp theo",
-        "🔔 Nhắc việc": "Nhắc việc",
-        "⚠️ Cảnh báo": "Cảnh báo"
-    })
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_renamed.to_excel(writer, index=False, sheet_name='Danh sách công việc')
+        df.to_excel(writer, index=False, sheet_name='Tasks')
     return output.getvalue()
 
 # --- Phân quyền người dùng ---
@@ -184,6 +165,19 @@ if tasks:
     with st.expander("📊 Thống kê theo loại Công việc"):
         type_chart = df["task_type"].value_counts().reset_index()
         type_chart.columns = ["Công việc", "Số lượng"]
-        fig
+        fig_type = px.bar(type_chart, x="Công việc", y="Số lượng", title="Số lượng công việc theo loại", color="Công việc")
+        st.plotly_chart(fig_type, use_container_width=True)
+
+    # KPI theo nhân sự
+    with st.expander("📊 KPI theo nhân sự"):
+        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
+        kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
+        st.dataframe(kpi_df, use_container_width=True)
+
+    # 📅 Lịch công việc theo ngày
+    with st.expander("📅 Lịch công việc theo ngày"):
+        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
+
 
 
