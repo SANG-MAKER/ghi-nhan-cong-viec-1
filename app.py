@@ -1,18 +1,14 @@
 import streamlit as st
-import json
-import os
 import pandas as pd
 import io
 from datetime import datetime, date
 import plotly.express as px
+from streamlit_gsheets import GSheetsConnection  # ✅ Thêm dòng này
 
 # --- Cấu hình giao diện ---
 st.set_page_config(page_title="📋 TRACKING", page_icon="✅", layout="wide")
 st.title("📋 TRACKING")
 st.markdown("Ứng dụng ghi nhận và báo cáo công việc chuyên nghiệp dành cho nhóm hoặc cá nhân.")
-
-# --- Đường dẫn file dữ liệu ---
-DATA_FILE = "tasks.json"
 
 # --- Đổi tên cột sang tiếng Việt ---
 column_mapping = {
@@ -36,20 +32,6 @@ column_mapping = {
 }
 reverse_mapping = {v: k for k, v in column_mapping.items()}
 
-# --- Hàm xử lý dữ liệu ---
-def load_tasks(file_path):
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            st.warning("⚠️ File dữ liệu bị lỗi. Đang khởi tạo lại danh sách trống.")
-    return []
-
-def save_tasks(file_path, tasks):
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(tasks, f, ensure_ascii=False, indent=2)
-
 def to_excel(df):
     output = io.BytesIO()
     df_renamed = df.rename(columns=column_mapping)
@@ -61,8 +43,10 @@ def to_excel(df):
 role = st.sidebar.selectbox("🔐 Vai trò người dùng", ["Nhân viên", "Quản lý"])
 st.sidebar.markdown(f"**Bạn đang đăng nhập với vai trò:** `{role}`")
 
-# --- Đọc dữ liệu ---
-tasks = load_tasks(DATA_FILE)
+# --- Kết nối Google Sheets ---
+conn = st.connection("gsheets", type=GSheetsConnection)
+df = conn.read(worksheet="Sheet1")
+df = df.dropna(how="all")  # Xóa dòng trống nếu có
 
 # --- Biểu mẫu ghi nhận công việc ---
 with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân viên")):
@@ -113,73 +97,65 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
                 "deadline": str(deadline),
                 "next_plan": str(next_plan) if next_plan else ""
             }
-            tasks.append(new_task)
-            save_tasks(DATA_FILE, tasks)
+            new_df = pd.DataFrame([new_task])
+            updated_df = pd.concat([df, new_df], ignore_index=True)
+            conn.write(updated_df, worksheet="Sheet1")
             st.success("🎉 Công việc đã được ghi nhận!")
             st.rerun()
-            
+
+# --- Bộ lọc dữ liệu ---
+with st.sidebar.expander("🔎 Bộ lọc dữ liệu"):
+    selected_project = st.selectbox("📁 Lọc theo dự án", ["Tất cả"] + df["project"].unique().tolist())
+    selected_status = st.selectbox("📌 Lọc theo trạng thái", ["Tất cả"] + df["status"].unique().tolist())
+    selected_department = st.selectbox("🏢 Lọc theo phòng ban", ["Tất cả"] + df["department"].unique().tolist())
+    selected_name = st.selectbox("👤 Lọc theo người thực hiện", ["Tất cả"] + df["name"].unique().tolist())
+
+if selected_project != "Tất cả":
+    df = df[df["project"] == selected_project]
+if selected_status != "Tất cả":
+    df = df[df["status"] == selected_status]
+if selected_department != "Tất cả":
+    df = df[df["department"] == selected_department]
+if selected_name != "Tất cả":
+    df = df[df["name"] == selected_name]
+
+df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
+
+def check_overdue(row):
+    if row["status"] != "Hoàn thành":
+        try:
+            deadline_date = datetime.strptime(row["deadline"], "%Y-%m-%d").date()
+            if deadline_date < date.today():
+                return "🔴 Đã quá hạn!"
+        except:
+            return ""
+    return ""
+
+df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
+
 # --- Hiển thị dữ liệu và biểu đồ ---
-if tasks:
-    df = pd.DataFrame(tasks)
+with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
+    df_display = df.rename(columns=column_mapping)
+    st.dataframe(df_display, use_container_width=True)
 
-    # Bộ lọc dữ liệu
-    with st.sidebar.expander("🔎 Bộ lọc dữ liệu"):
-        selected_project = st.selectbox("📁 Lọc theo dự án", ["Tất cả"] + df["project"].unique().tolist())
-        selected_status = st.selectbox("📌 Lọc theo trạng thái", ["Tất cả"] + df["status"].unique().tolist())
-        selected_department = st.selectbox("🏢 Lọc theo phòng ban", ["Tất cả"] + df["department"].unique().tolist())
-        selected_name = st.selectbox("👤 Lọc theo người thực hiện", ["Tất cả"] + df["name"].unique().tolist())
+with st.expander("📈 Thống kê công việc theo trạng thái"):
+    status_chart = df["status"].value_counts().reset_index()
+    status_chart.columns = ["Trạng thái", "Số lượng"]
+    fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
+    st.plotly_chart(fig_status, use_container_width=True)
 
-    if selected_project != "Tất cả":
-        df = df[df["project"] == selected_project]
-    if selected_status != "Tất cả":
-        df = df[df["status"] == selected_status]
-    if selected_department != "Tất cả":
-        df = df[df["department"] == selected_department]
-    if selected_name != "Tất cả":
-        df = df[df["name"] == selected_name]
+with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
+    stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
+    fig_stacked = px.bar(
+        stacked_df,
+        x="project",
+        y="Số lượng",
+        color="task_group",
+        title="Số lượng công việc theo Hạng mục trong từng Dự án",
+        barmode="stack"
+    )
+    st.plotly_chart(fig_stacked, use_container_width=True)
 
-    df["🔔 Nhắc việc"] = df["status"].apply(lambda s: "Cần nhắc" if s != "Hoàn thành" else "")
-
-    def check_overdue(row):
-        if row["status"] != "Hoàn thành":
-            try:
-                deadline_date = datetime.strptime(row["deadline"], "%Y-%m-%d").date()
-                if deadline_date < date.today():
-                    return "🔴 Đã quá hạn!"
-            except:
-                return ""
-        return ""
-
-    df["⚠️ Cảnh báo"] = df.apply(check_overdue, axis=1)
-
-    with st.expander("📊 Danh sách công việc đã ghi nhận", expanded=True):
-        df_display = df.rename(columns=column_mapping)
-        edited_df = st.data_editor(df_display, num_rows="dynamic", use_container_width=True)
-        if st.button("💾 Lưu thay đổi"):
-            df_saved = edited_df.rename(columns=reverse_mapping)
-            tasks = df_saved.to_dict(orient="records")
-            save_tasks(DATA_FILE, tasks)
-            st.success("✅ Dữ liệu đã được cập nhật!")
-            st.rerun()
-
-    with st.expander("📈 Thống kê công việc theo trạng thái"):
-        status_chart = df["status"].value_counts().reset_index()
-        status_chart.columns = ["Trạng thái", "Số lượng"]
-        fig_status = px.pie(status_chart, names="Trạng thái", values="Số lượng", title="Tỷ lệ trạng thái công việc", hole=0.4)
-        st.plotly_chart(fig_status, use_container_width=True)
-
-    with st.expander("📊 Thống kê công việc theo Hạng mục và Dự án"):
-        stacked_df = df.groupby(["project", "task_group"]).size().reset_index(name="Số lượng")
-        fig_stacked = px.bar(
-            stacked_df,
-            x="project",
-            y="Số lượng",
-            color="task_group",
-            title="Số lượng công việc theo Hạng mục trong từng Dự án",
-            barmode="stack"
-        )
-        st.plotly_chart(fig_stacked, use_container_width=True)
-        
 with st.expander("📊 Thống kê theo loại Công việc"):
     type_chart = df["task_type"].value_counts().reset_index()
     type_chart.columns = ["Loại công việc", "Số lượng"]
@@ -193,30 +169,5 @@ with st.expander("📊 Thống kê theo loại Công việc"):
     st.plotly_chart(fig_type, use_container_width=True)
 
 with st.expander("📊 KPI theo nhân sự"):
-        kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
-        kpi_df["Tổng công việc"] = kpi_df.sum(axis=1)
-        kpi_df = kpi_df.sort_values("Tổng công việc", ascending=False)
-        st.dataframe(kpi_df, use_container_width=True)
-
-with st.expander("📅 Lịch công việc theo ngày"):
-        df["Ngày thực hiện"] = pd.to_datetime(df["date"], errors="coerce")
-        calendar_df = df.groupby(df["Ngày thực hiện"].dt.date)["task"].count().reset_index()
-        calendar_df.columns = ["Ngày", "Số lượng công việc"]
-        fig_calendar = px.bar(
-            calendar_df,
-            x="Ngày",
-            y="Số lượng công việc",
-            title="Lịch công việc theo ngày",
-            color="Số lượng công việc"
-        )
-        st.plotly_chart(fig_calendar, use_container_width=True)
-
-with st.expander("📥 Tải xuống dữ liệu"):
-        df_excel = df.rename(columns=column_mapping)
-        excel_data = to_excel(df_excel)
-        st.download_button(
-            label="📥 Tải xuống danh sách công việc (Excel)",
-            data=excel_data,
-            file_name="tasks.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+    kpi_df = df.groupby("name")["status"].value_counts().unstack(fill_value=0)
+    kpi_df
