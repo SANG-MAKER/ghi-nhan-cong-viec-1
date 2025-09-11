@@ -118,36 +118,6 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
             st.success("🎉 Công việc đã được ghi nhận!")
             st.rerun()
             
-if submitted:
-    new_task = {
-        "name": name.strip(),
-        "department": department.strip(),
-        "project": project,
-        "task_type": task_type,
-        "task_group": task_group.strip(),
-        "task": task.strip(),
-        "note": note.strip(),
-        "feedback": feedback.strip(),
-        "feedback_date": str(feedback_date) if feedback_date else "",
-        "date": str(date_work),
-        "time": time.strftime("%H:%M"),
-        "repeat": repeat,
-        "status": status,
-        "deadline": str(deadline),
-        "next_plan": str(next_plan) if next_plan else ""
-    }
-
-    # --- Lưu vào Google Sheets ---
-    from streamlit_gsheets import GSheetsConnection
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    existing_df = conn.read(worksheet="Sheet1")
-    new_df = pd.DataFrame([new_task])
-    updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-    conn.write(updated_df, worksheet="Sheet1")
-
-    st.success("🎉 Công việc đã được ghi nhận!")
-    st.rerun()
-
 # --- Hiển thị dữ liệu và biểu đồ ---
 if tasks:
     df = pd.DataFrame(tasks)
