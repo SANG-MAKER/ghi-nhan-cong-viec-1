@@ -117,6 +117,22 @@ with st.expander("📝 Ghi nhận công việc mới", expanded=(role == "Nhân 
             save_tasks(DATA_FILE, tasks)
             st.success("🎉 Công việc đã được ghi nhận!")
             st.rerun()
+from streamlit_gsheets import GSheetsConnection
+
+# Tạo kết nối đến Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# Đọc dữ liệu hiện có
+existing_df = conn.read(worksheet="Sheet1")
+
+# Tạo dòng dữ liệu mới
+new_df = pd.DataFrame([new_task])
+
+# Ghép dữ liệu mới vào bảng cũ
+updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+
+# Ghi lại vào Google Sheets
+conn.write(updated_df, worksheet="Sheet1")
 
 # --- Hiển thị dữ liệu và biểu đồ ---
 if tasks:
