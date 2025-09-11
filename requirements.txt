@@ -4,3 +4,6 @@ pandas
 matplotlib
 xlsxwriter
 plotly
+streamlit
+streamlit_gsheets_connection
+pandas
